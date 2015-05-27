@@ -7,6 +7,63 @@ import time
 import scipy.io
 from feature_extractor import *
 
+def parse_line(line, previous_image):
+    IID, sentence_id, sentence = line.split('\t')
+
+    current_sentence = {
+        'tokens': nltk.word_tokenize(sentence),
+        'raw'   : sentence.strip(),
+        'sentid': sentence_id
+    }
+
+    current_image = {}
+    current_image['IID'] = IID
+    current_image['sentids'] = [sentence_id]
+    current_image['filename'] = '%s.jpg' % IID
+
+    done = False
+
+    if previous_image.keys():
+        # Previous image exists
+        if previous_image['IID'] == IID:
+            # Still same image, different sentence
+            current_image = previous_image
+            current_image['sentids'].append(sentence_id)
+            current_sentence['imgid'] = current_image['imgid']
+            current_image['sentences'].append(current_sentence)
+        else:
+            # Different image
+            current_image['imgid'] = previous_image['imgid'] + 1
+            current_sentence['imgid'] = current_image['imgid']
+            current_image['sentences'] = [current_sentence]
+
+            done = True
+    else:
+        # Previous image does not exist
+        current_image['imgid'] = 0
+        current_sentence['imgid'] = current_image['imgid']
+        current_image['sentences'] = [current_sentence]
+
+    return (current_image, done)
+
+
+def parse_descriptions(path):
+    images = []
+
+    with open(path, 'rb') as in_file:
+        previous_image = {}
+        current_image = {}
+        for line in in_file:
+            current_image, done = parse_line(line, previous_image)
+
+            if done:
+                images.append(previous_image)
+
+            previous_image = current_image
+        images.append(previous_image)
+
+    return images
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--model_def_path',dest='model_def_path', type=str , help='Path to the VGG_ILSVRC_16_layers model definition file.')
@@ -61,6 +118,7 @@ if __name__ == '__main__':
     	output['images'][idx] = image
     	path_imgs.append(os.path.join(input_directory, image['filename'][:2], image['filename']))
 
+    
     json_out_file = os.path.join(out_directory, 'dataset.json')
     print 'Saving descriptions JSON file to %s' % json_out_file
 
