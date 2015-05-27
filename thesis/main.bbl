@@ -1,0 +1,69 @@
+\begin{thebibliography}{10}
+
+\bibitem{carbonetto2004statistical}
+Peter Carbonetto, Nando de~Freitas, Kobus Barnard, N~Freitas, and Kobus
+  Barnard.
+\newblock {A statistical model for general contextual object recognition}.
+\newblock In {\em Computer Vision-ECCV 2004}, pages 350--362. Springer, 2004.
+
+\bibitem{Farhadi2010}
+Ali Farhadi, Mohsen Hejrati, Mohammad~Amin Sadeghi, Peter Young, Cyrus
+  Rashtchian, Julia Hockenmaier, and David Forsyth.
+\newblock {Every picture tells a story: Generating sentences from images}.
+\newblock In {\em Lecture Notes in Computer Science (including subseries
+  Lecture Notes in Artificial Intelligence and Lecture Notes in
+  Bioinformatics)}, volume 6314 LNCS, pages 15--29, 2010.
+
+\bibitem{he2015delving}
+Kaiming He, Xiangyu Zhang, Shaoqing Ren, and Jian Sun.
+\newblock {Delving Deep into Rectifiers: Surpassing Human-Level Performance on
+  ImageNet Classification}.
+\newblock {\em arXiv preprint arXiv:1502.01852}, 2015.
+
+\bibitem{karpathy2014deep}
+Andrej Karpathy and Li~Fei-Fei.
+\newblock {Deep visual-semantic alignments for generating image descriptions}.
+\newblock {\em arXiv preprint arXiv:1412.2306}, 2014.
+
+\bibitem{lazar2007frustrates}
+Jonathan Lazar, Aaron Allen, Jason Kleinman, and Chris Malarkey.
+\newblock {What frustrates screen reader users on the web: A study of 100 blind
+  users}.
+\newblock {\em International Journal of human-computer interaction},
+  22(3):247--269, 2007.
+
+\bibitem{Lin2014}
+Tsung-Yi Lin, Michael Maire, Serge Belongie, James Hays, Pietro Perona, Deva
+  Ramanan, Piotr Doll\'{a}r, and C~Lawrence Zitnick.
+\newblock {Microsoft COCO: Common Objects in Context}.
+\newblock {\em arXiv preprint arXiv \ldots}, cs.CV, 2014.
+
+\bibitem{mao2014explain}
+Junhua Mao, Wei Xu, Yi~Yang, Jiang Wang, and Alan~L Yuille.
+\newblock {Explain images with multimodal recurrent neural networks}.
+\newblock {\em arXiv preprint arXiv:1410.1090}, 2014.
+
+\bibitem{mitchell2012midge}
+Margaret Mitchell, Jesse Dodge, Amit Goyal, Kota Yamaguchi, Karl Stratos,
+  Alyssa Mensch, Alex Berg, Xufeng Han, Tamara Berg, Oregon Health, Jesse
+  Dodge, Alyssa Mensch, Amit Goyal, Alex Berg, Kota Yamaguchi, Tamara Berg,
+  Karl Stratos, and Hal {Daum\'{e} III}.
+\newblock {Midge: Generating image descriptions from computer vision
+  detections}.
+\newblock In {\em Proceedings of the 13th Conference of the European Chapter of
+  the Association for Computational Linguistics}, pages 747--756. Association
+  for Computational Linguistics, 2012.
+
+\bibitem{Russakovsky2012}
+Olga Russakovsky and Li~Fei-Fei.
+\newblock {Attribute learning in large-scale datasets}.
+\newblock In {\em Lecture Notes in Computer Science (including subseries
+  Lecture Notes in Artificial Intelligence and Lecture Notes in
+  Bioinformatics)}, volume 6553 LNCS, pages 1--14, 2012.
+
+\bibitem{Yang2011}
+Yezhou Yang, Ching~Lik Teo, Hal Daume, and Yiannis Aloimonos.
+\newblock {Corpus-Guided Sentence Generation of Natural Images}.
+\newblock In {\em Proceedings of EMNLP}, pages 444--454, 2011.
+
+\end{thebibliography}

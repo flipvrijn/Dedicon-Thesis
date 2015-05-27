@@ -1,0 +1,21 @@
+# Created by https://www.gitignore.io
+
+### Python ###
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+
+# C extensions
+*.so
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff:
+*.log
+
+datasets/
+input/
+output/
+models/
