@@ -180,7 +180,6 @@ def caffe_extract_feats(path_imgs , path_model_def , path_model , WITH_GPU = Tru
                 list_imgs.append(list_imgs[-1]) #Appending the last image in order to have a batch of size 10. The extra predictions are removed later..
                 
         caffe_input = np.asarray([preprocess_image(in_) for in_ in list_imgs]) #preprocess the images
-
         predictions =caffe_net.forward(data = caffe_input)
         predictions = predictions[caffe_net.outputs[0]].transpose()
 

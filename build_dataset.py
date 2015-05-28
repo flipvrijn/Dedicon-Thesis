@@ -7,8 +7,8 @@ import time
 import scipy.io
 from feature_extractor import *
 
-def parse_line(line, previous_image):
-    IID, sentence_id, sentence = line.split('\t')
+def parse_line(line, previous_image, sentence_id):
+    IID, _, sentence = line.split('\t')
 
     current_sentence = {
         'tokens': nltk.word_tokenize(sentence),
@@ -44,22 +44,26 @@ def parse_line(line, previous_image):
         current_sentence['imgid'] = current_image['imgid']
         current_image['sentences'] = [current_sentence]
 
-    return (current_image, done)
+    sentence_id = sentence_id + 1
+
+    return (current_image, done, sentence_id)
 
 
 def parse_descriptions(path):
     images = []
+    current_sentence_id = 0
 
     with open(path, 'rb') as in_file:
         previous_image = {}
         current_image = {}
         for line in in_file:
-            current_image, done = parse_line(line, previous_image)
+            current_image, done, sentence_id = parse_line(line, previous_image, current_sentence_id)
 
             if done:
                 images.append(previous_image)
 
             previous_image = current_image
+            current_sentence_id = sentence_id
         images.append(previous_image)
 
     return images
