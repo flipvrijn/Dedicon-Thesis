@@ -1,69 +1,96 @@
-\begin{thebibliography}{10}
+\begin{thebibliography}{11}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
 
-\bibitem{carbonetto2004statistical}
+\bibitem[Carbonetto et~al.(2004)Carbonetto, de~Freitas, Barnard, Freitas, and
+  Barnard]{carbonetto2004statistical}
 Peter Carbonetto, Nando de~Freitas, Kobus Barnard, N~Freitas, and Kobus
   Barnard.
 \newblock {A statistical model for general contextual object recognition}.
-\newblock In {\em Computer Vision-ECCV 2004}, pages 350--362. Springer, 2004.
+\newblock In \emph{Computer Vision-ECCV 2004}, pages 350--362. Springer, 2004.
+\newblock URL
+  \url{papers3://publication/uuid/48FBF7F2-62EE-4E3C-95C6-0F73608EE2A6}.
 
-\bibitem{Farhadi2010}
+\bibitem[Farhadi et~al.(2010)Farhadi, Hejrati, Sadeghi, Young, Rashtchian,
+  Hockenmaier, and Forsyth]{Farhadi2010}
 Ali Farhadi, Mohsen Hejrati, Mohammad~Amin Sadeghi, Peter Young, Cyrus
   Rashtchian, Julia Hockenmaier, and David Forsyth.
 \newblock {Every picture tells a story: Generating sentences from images}.
-\newblock In {\em Lecture Notes in Computer Science (including subseries
+\newblock In \emph{Lecture Notes in Computer Science (including subseries
   Lecture Notes in Artificial Intelligence and Lecture Notes in
   Bioinformatics)}, volume 6314 LNCS, pages 15--29, 2010.
+\newblock ISBN 364215560X.
+\newblock \doi{10.1007/978-3-642-15561-1\_2}.
 
-\bibitem{he2015delving}
+\bibitem[He et~al.(2015)He, Zhang, Ren, and Sun]{he2015delving}
 Kaiming He, Xiangyu Zhang, Shaoqing Ren, and Jian Sun.
 \newblock {Delving Deep into Rectifiers: Surpassing Human-Level Performance on
   ImageNet Classification}.
-\newblock {\em arXiv preprint arXiv:1502.01852}, 2015.
+\newblock \emph{arXiv preprint arXiv:1502.01852}, 2015.
 
-\bibitem{karpathy2014deep}
+\bibitem[Karpathy and Fei-Fei(2014)]{karpathyfeifei2014deep}
 Andrej Karpathy and Li~Fei-Fei.
 \newblock {Deep visual-semantic alignments for generating image descriptions}.
-\newblock {\em arXiv preprint arXiv:1412.2306}, 2014.
+\newblock \emph{arXiv preprint arXiv:1412.2306}, 2014.
 
-\bibitem{lazar2007frustrates}
+\bibitem[Lazar et~al.(2007)Lazar, Allen, Kleinman, and
+  Malarkey]{lazar2007frustrates}
 Jonathan Lazar, Aaron Allen, Jason Kleinman, and Chris Malarkey.
 \newblock {What frustrates screen reader users on the web: A study of 100 blind
   users}.
-\newblock {\em International Journal of human-computer interaction},
-  22(3):247--269, 2007.
+\newblock \emph{International Journal of human-computer interaction},
+  22\penalty0 (3):\penalty0 247--269, 2007.
 
-\bibitem{Lin2014}
+\bibitem[Lin et~al.(2014)Lin, Maire, Belongie, Hays, Perona, Ramanan,
+  Doll\'{a}r, and Zitnick]{Lin2014}
 Tsung-Yi Lin, Michael Maire, Serge Belongie, James Hays, Pietro Perona, Deva
   Ramanan, Piotr Doll\'{a}r, and C~Lawrence Zitnick.
 \newblock {Microsoft COCO: Common Objects in Context}.
-\newblock {\em arXiv preprint arXiv \ldots}, cs.CV, 2014.
+\newblock \emph{arXiv preprint arXiv \ldots}, cs.CV, 2014.
+\newblock \doi{10.1007/978-3-319-10602-1\_48}.
+\newblock URL
+  \url{http://arxiv.org/abs/1405.0312v2$\backslash$npapers3://publication/uuid/F5BB1978-0B9E-4127-9863-85A71B8F8225}.
 
-\bibitem{mao2014explain}
+\bibitem[Mao et~al.(2014)Mao, Xu, Yang, Wang, and Yuille]{mao2014explain}
 Junhua Mao, Wei Xu, Yi~Yang, Jiang Wang, and Alan~L Yuille.
 \newblock {Explain images with multimodal recurrent neural networks}.
-\newblock {\em arXiv preprint arXiv:1410.1090}, 2014.
+\newblock \emph{arXiv preprint arXiv:1410.1090}, 2014.
 
-\bibitem{mitchell2012midge}
+\bibitem[Mitchell et~al.(2012)Mitchell, Dodge, Goyal, Yamaguchi, Stratos,
+  Mensch, Berg, Han, Berg, Health, Dodge, Mensch, Goyal, Berg, Yamaguchi, Berg,
+  Stratos, and {Daum\'{e} III}]{mitchell2012midge}
 Margaret Mitchell, Jesse Dodge, Amit Goyal, Kota Yamaguchi, Karl Stratos,
   Alyssa Mensch, Alex Berg, Xufeng Han, Tamara Berg, Oregon Health, Jesse
   Dodge, Alyssa Mensch, Amit Goyal, Alex Berg, Kota Yamaguchi, Tamara Berg,
   Karl Stratos, and Hal {Daum\'{e} III}.
 \newblock {Midge: Generating image descriptions from computer vision
   detections}.
-\newblock In {\em Proceedings of the 13th Conference of the European Chapter of
-  the Association for Computational Linguistics}, pages 747--756. Association
-  for Computational Linguistics, 2012.
+\newblock In \emph{Proceedings of the 13th Conference of the European Chapter
+  of the Association for Computational Linguistics}, pages 747--756.
+  Association for Computational Linguistics, 2012.
+\newblock ISBN 978-1-937284-19-0.
 
-\bibitem{Russakovsky2012}
+\bibitem[Russakovsky and Fei-Fei(2012)]{Russakovsky2012}
 Olga Russakovsky and Li~Fei-Fei.
 \newblock {Attribute learning in large-scale datasets}.
-\newblock In {\em Lecture Notes in Computer Science (including subseries
+\newblock In \emph{Lecture Notes in Computer Science (including subseries
   Lecture Notes in Artificial Intelligence and Lecture Notes in
   Bioinformatics)}, volume 6553 LNCS, pages 1--14, 2012.
+\newblock ISBN 978-3-642-35748-0.
+\newblock \doi{10.1007/978-3-642-35749-7\_1}.
 
-\bibitem{Yang2011}
+\bibitem[Simonyan and Zisserman(2014)]{simonyan2014very}
+Karen Simonyan and Andrew Zisserman.
+\newblock {Very deep convolutional networks for large-scale image recognition}.
+\newblock \emph{arXiv preprint arXiv:1409.1556}, 2014.
+
+\bibitem[Yang et~al.(2011)Yang, Teo, Daume, and Aloimonos]{Yang2011}
 Yezhou Yang, Ching~Lik Teo, Hal Daume, and Yiannis Aloimonos.
 \newblock {Corpus-Guided Sentence Generation of Natural Images}.
-\newblock In {\em Proceedings of EMNLP}, pages 444--454, 2011.
+\newblock In \emph{Proceedings of EMNLP}, pages 444--454, 2011.
+\newblock ISBN 1937284115.
 
 \end{thebibliography}

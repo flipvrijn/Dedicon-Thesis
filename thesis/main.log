@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.15 (TeX Live 2014) (preloaded format=pdflatex 2014.8.10)  22 MAY 2015 16:09
+This is pdfTeX, Version 3.14159265-2.6-1.40.15 (TeX Live 2014) (preloaded format=pdflatex 2014.8.10)  28 MAY 2015 16:32
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -240,6 +240,13 @@ Now handling font encoding U ...
    defining Unicode char U+2122 (decimal 8482)
    defining Unicode char U+2423 (decimal 9251)
 ))
+(/usr/local/texlive/2014/texmf-dist/tex/latex/natbib/natbib.sty
+Package: natbib 2010/09/13 8.31b (PWD, AO)
+\bibhang=\skip43
+\bibsep=\skip44
+LaTeX Info: Redefining \cite on input line 694.
+\c@NAT@ctr=\count87
+)
 (/usr/local/texlive/2014/texmf-dist/tex/latex/geometry/geometry.sty
 Package: geometry 2010/09/12 v5.6 Page Geometry
 
@@ -258,9 +265,9 @@ Package ifvtex Info: VTeX not detected.
 (/usr/local/texlive/2014/texmf-dist/tex/generic/ifxetex/ifxetex.sty
 Package: ifxetex 2010/09/12 v0.6 Provides ifxetex conditional
 )
-\Gm@cnth=\count87
-\Gm@cntv=\count88
-\c@Gm@tempcnt=\count89
+\Gm@cnth=\count88
+\Gm@cntv=\count89
+\c@Gm@tempcnt=\count90
 \Gm@bindingoffset=\dimen103
 \Gm@wd@mp=\dimen104
 \Gm@odd@mp=\dimen105
@@ -294,7 +301,7 @@ Package: infwarerr 2010/04/08 v1.3 Providing info/warning/error messages (HO)
 (/usr/local/texlive/2014/texmf-dist/tex/generic/oberdiek/ltxcmds.sty
 Package: ltxcmds 2011/11/09 v1.22 LaTeX kernel commands for general use (HO)
 )
-\Gread@gobject=\count90
+\Gread@gobject=\count91
 ))
 \Gin@req@height=\dimen111
 \Gin@req@width=\dimen112
@@ -311,12 +318,12 @@ Package: booktabs 2005/04/14 v1.61803 publication quality tables
 \cmidrulesep=\dimen120
 \cmidrulekern=\dimen121
 \defaultaddspace=\dimen122
-\@cmidla=\count91
-\@cmidlb=\count92
+\@cmidla=\count92
+\@cmidlb=\count93
 \@aboverulesep=\dimen123
 \@belowrulesep=\dimen124
-\@thisruleclass=\count93
-\@lastruleclass=\count94
+\@thisruleclass=\count94
+\@lastruleclass=\count95
 \@thisrulewidth=\dimen125
 )
 (/usr/local/texlive/2014/texmf-dist/tex/latex/tools/array.sty
@@ -324,15 +331,15 @@ Package: array 2008/09/09 v2.4c Tabular extension package (FMi)
 \col@sep=\dimen126
 \extrarowheight=\dimen127
 \NC@list=\toks18
-\extratabsurround=\skip43
-\backup@length=\skip44
+\extratabsurround=\skip45
+\backup@length=\skip46
 )
 (/usr/local/texlive/2014/texmf-dist/tex/latex/paralist/paralist.sty
 Package: paralist 2013/06/09 v2.4 Extended list environments
-\pltopsep=\skip45
-\plpartopsep=\skip46
-\plitemsep=\skip47
-\plparsep=\skip48
+\pltopsep=\skip47
+\plpartopsep=\skip48
+\plitemsep=\skip49
+\plparsep=\skip50
 \pl@lab=\toks19
 )
 (/usr/local/texlive/2014/texmf-dist/tex/latex/tools/verbatim.sty
@@ -358,32 +365,32 @@ Package caption3 Info: TeX engine: e-TeX on input line 57.
 \caption@parindent=\dimen133
 \caption@hangindent=\dimen134
 )
-\c@ContinuedFloat=\count95
+\c@ContinuedFloat=\count96
 )
-\c@KVtest=\count96
-\sf@farskip=\skip49
+\c@KVtest=\count97
+\sf@farskip=\skip51
 \sf@captopadj=\dimen135
-\sf@capskip=\skip50
-\sf@nearskip=\skip51
-\c@subfigure=\count97
-\c@subfigure@save=\count98
-\c@lofdepth=\count99
-\c@subtable=\count100
-\c@subtable@save=\count101
-\c@lotdepth=\count102
-\sf@top=\skip52
-\sf@bottom=\skip53
+\sf@capskip=\skip52
+\sf@nearskip=\skip53
+\c@subfigure=\count98
+\c@subfigure@save=\count99
+\c@lofdepth=\count100
+\c@subtable=\count101
+\c@subtable@save=\count102
+\c@lotdepth=\count103
+\sf@top=\skip54
+\sf@bottom=\skip55
 )
 (/usr/local/texlive/2014/texmf-dist/tex/latex/fancyhdr/fancyhdr.sty
-\fancy@headwidth=\skip54
-\f@ncyO@elh=\skip55
-\f@ncyO@erh=\skip56
-\f@ncyO@olh=\skip57
-\f@ncyO@orh=\skip58
-\f@ncyO@elf=\skip59
-\f@ncyO@erf=\skip60
-\f@ncyO@olf=\skip61
-\f@ncyO@orf=\skip62
+\fancy@headwidth=\skip56
+\f@ncyO@elh=\skip57
+\f@ncyO@erh=\skip58
+\f@ncyO@olh=\skip59
+\f@ncyO@orh=\skip60
+\f@ncyO@elf=\skip61
+\f@ncyO@erf=\skip62
+\f@ncyO@olf=\skip63
+\f@ncyO@orf=\skip64
 )
 (/usr/local/texlive/2014/texmf-dist/tex/latex/sectsty/sectsty.sty
 Package: sectsty 2002/02/25 v2.0.2 Commands to change all sectional heading sty
@@ -399,59 +406,59 @@ Package tocbibind Note: Using section or other style headings.
 ) (/usr/local/texlive/2014/texmf-dist/tex/latex/tocloft/tocloft.sty
 Package: tocloft 2013/05/02 v2.3f parameterised ToC, etc., typesetting
 Package tocloft Info: The document has section divisions on input line 44.
-\cftparskip=\skip63
-\cftbeforetoctitleskip=\skip64
-\cftaftertoctitleskip=\skip65
-\cftbeforepartskip=\skip66
-\cftpartnumwidth=\skip67
-\cftpartindent=\skip68
-\cftbeforesecskip=\skip69
-\cftsecindent=\skip70
-\cftsecnumwidth=\skip71
-\cftbeforesubsecskip=\skip72
-\cftsubsecindent=\skip73
-\cftsubsecnumwidth=\skip74
-\cftbeforesubsubsecskip=\skip75
-\cftsubsubsecindent=\skip76
-\cftsubsubsecnumwidth=\skip77
-\cftbeforeparaskip=\skip78
-\cftparaindent=\skip79
-\cftparanumwidth=\skip80
-\cftbeforesubparaskip=\skip81
-\cftsubparaindent=\skip82
-\cftsubparanumwidth=\skip83
-\cftbeforeloftitleskip=\skip84
-\cftafterloftitleskip=\skip85
-\cftbeforefigskip=\skip86
-\cftfigindent=\skip87
-\cftfignumwidth=\skip88
-\cftbeforelottitleskip=\skip89
-\cftafterlottitleskip=\skip90
-\cftbeforetabskip=\skip91
-\cfttabindent=\skip92
-\cfttabnumwidth=\skip93
-\cftbeforesubfigskip=\skip94
-\cftsubfigindent=\skip95
-\cftsubfignumwidth=\skip96
-\cftbeforesubtabskip=\skip97
-\cftsubtabindent=\skip98
-\cftsubtabnumwidth=\skip99
+\cftparskip=\skip65
+\cftbeforetoctitleskip=\skip66
+\cftaftertoctitleskip=\skip67
+\cftbeforepartskip=\skip68
+\cftpartnumwidth=\skip69
+\cftpartindent=\skip70
+\cftbeforesecskip=\skip71
+\cftsecindent=\skip72
+\cftsecnumwidth=\skip73
+\cftbeforesubsecskip=\skip74
+\cftsubsecindent=\skip75
+\cftsubsecnumwidth=\skip76
+\cftbeforesubsubsecskip=\skip77
+\cftsubsubsecindent=\skip78
+\cftsubsubsecnumwidth=\skip79
+\cftbeforeparaskip=\skip80
+\cftparaindent=\skip81
+\cftparanumwidth=\skip82
+\cftbeforesubparaskip=\skip83
+\cftsubparaindent=\skip84
+\cftsubparanumwidth=\skip85
+\cftbeforeloftitleskip=\skip86
+\cftafterloftitleskip=\skip87
+\cftbeforefigskip=\skip88
+\cftfigindent=\skip89
+\cftfignumwidth=\skip90
+\cftbeforelottitleskip=\skip91
+\cftafterlottitleskip=\skip92
+\cftbeforetabskip=\skip93
+\cfttabindent=\skip94
+\cfttabnumwidth=\skip95
+\cftbeforesubfigskip=\skip96
+\cftsubfigindent=\skip97
+\cftsubfignumwidth=\skip98
+\cftbeforesubtabskip=\skip99
+\cftsubtabindent=\skip100
+\cftsubtabnumwidth=\skip101
 )
 (./main.aux)
 \openout1 = `main.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 61.
-LaTeX Font Info:    ... okay on input line 61.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 61.
-LaTeX Font Info:    ... okay on input line 61.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 61.
-LaTeX Font Info:    ... okay on input line 61.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 61.
-LaTeX Font Info:    ... okay on input line 61.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 61.
-LaTeX Font Info:    ... okay on input line 61.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 61.
-LaTeX Font Info:    ... okay on input line 61.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 63.
+LaTeX Font Info:    ... okay on input line 63.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 63.
+LaTeX Font Info:    ... okay on input line 63.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 63.
+LaTeX Font Info:    ... okay on input line 63.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 63.
+LaTeX Font Info:    ... okay on input line 63.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 63.
+LaTeX Font Info:    ... okay on input line 63.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 63.
+LaTeX Font Info:    ... okay on input line 63.
 
 *geometry* driver: auto-detecting
 *geometry* detected driver: pdftex
@@ -489,16 +496,16 @@ LaTeX Font Info:    ... okay on input line 61.
 
 (/usr/local/texlive/2014/texmf-dist/tex/context/base/supp-pdf.mkii
 [Loading MPS to PDF converter (version 2006.09.02).]
-\scratchcounter=\count103
+\scratchcounter=\count104
 \scratchdimen=\dimen136
 \scratchbox=\box26
-\nofMPsegments=\count104
-\nofMParguments=\count105
+\nofMPsegments=\count105
+\nofMParguments=\count106
 \everyMPshowfont=\toks22
-\MPscratchCnt=\count106
+\MPscratchCnt=\count107
 \MPscratchDim=\dimen137
-\MPnumerator=\count107
-\makeMPintoPDFobject=\count108
+\MPnumerator=\count108
+\makeMPintoPDFobject=\count109
 \everyMPtoPDFconversion=\toks23
 ) (/usr/local/texlive/2014/texmf-dist/tex/generic/oberdiek/pdftexcmds.sty
 Package: pdftexcmds 2011/11/29 v0.20 Utility functions of pdfTeX for LuaTeX (HO
@@ -548,34 +555,81 @@ Package caption Info: Begin \AtBeginDocument code.
 Package caption Info: subfig package v1.3 is loaded.
 Package caption Info: End \AtBeginDocument code.
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <12> on input line 62.
+(Font)              <12> on input line 64.
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <8> on input line 62.
+(Font)              <8> on input line 64.
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <6> on input line 62.
+(Font)              <6> on input line 64.
 
 (./introduction.tex [1
 
 {/usr/local/texlive/2014/texmf-var/fonts/map/pdftex/updmap/pdftex.map}]) (./met
-hods.tex) [2] (./main.bbl [3]) [4] (./main.aux) ) 
+hods.tex [2]) (./main.bbl
+Underfull \hbox (badness 3029) in paragraph at lines 10--16
+\OT1/cmr/m/n/10.95 Barnard.  A sta-tis-ti-cal model for gen-eral con-tex-tual o
+b-ject recog-ni-tion.
+ []
+
+
+Underfull \hbox (badness 2772) in paragraph at lines 10--16
+\OT1/cmr/m/n/10.95 In \OT1/cmr/m/it/10.95 Com-puter Vision-ECCV 2004\OT1/cmr/m/
+n/10.95 , pages 350--362. Springer, 2004.  URL
+ []
+
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <10.95> on input line 55.
+
+Underfull \hbox (badness 10000) in paragraph at lines 49--56
+[]\OT1/cmr/m/n/10.95 Tsung-Yi Lin, Michael Maire, Serge Be-longie, James Hays, 
+Pietro
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 49--56
+\OT1/cmr/m/n/10.95 Per-ona, Deva Ra-manan, Pi-otr Doll^^Sar, and C Lawrence Zit
+-nick.
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 49--56
+\OT1/cmr/m/n/10.95 Mi-crosoft COCO: Com-mon Ob-jects in Con-text.  \OT1/cmr/m/i
+t/10.95 arXiv preprint
+ []
+
+
+Underfull \hbox (badness 6775) in paragraph at lines 49--56
+\OT1/cmr/m/it/10.95 arXiv ...\OT1/cmr/m/n/10.95 , cs.CV, 2014.  doi: 10.1007/97
+8-3-319-10602-1[]48.  URL
+ []
+
+
+Overfull \hbox (164.64539pt too wide) in paragraph at lines 49--56
+\OT1/cmtt/m/n/10.95 http://arxiv.org/abs/1405.0312v2$\OMS/cmsy/m/n/10.95 n$\OT1
+/cmtt/m/n/10.95 npapers3://publication/uuid/F5BB1978-0B9E-4127-9863-85A71B8F822
+5\OT1/cmr/m/n/10.95 . 
+ []
+
+[3]) [4] (./main.aux) ) 
 Here is how much of TeX's memory you used:
- 4180 strings out of 493117
- 63176 string characters out of 6135433
- 140044 words of memory out of 5000000
- 7580 multiletter control sequences out of 15000+600000
- 9435 words of font info for 33 fonts, out of 8000000 for 9000
+ 4540 strings out of 493117
+ 67778 string characters out of 6135433
+ 146586 words of memory out of 5000000
+ 7935 multiletter control sequences out of 15000+600000
+ 10219 words of font info for 36 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 44i,10n,43p,1616b,301s stack positions out of 5000i,500n,10000p,200000b,80000s
-</usr/local/texlive/2014/texmf
--dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/local/texlive/2014/texmf-d
-ist/fonts/type1/public/amsfonts/cm/cmr12.pfb></usr/local/texlive/2014/texmf-dis
-t/fonts/type1/public/amsfonts/cm/cmr17.pfb></usr/local/texlive/2014/texmf-dist/
-fonts/type1/public/amsfonts/cm/cmss12.pfb></usr/local/texlive/2014/texmf-dist/f
-onts/type1/public/amsfonts/cm/cmti10.pfb>
-Output written on main.pdf (4 pages, 82395 bytes).
+ 44i,10n,43p,1616b,302s stack positions out of 5000i,500n,10000p,200000b,80000s
+</usr/local/texlive/2014/texmf-dist/fonts/type1/public/a
+msfonts/cm/cmr10.pfb></usr/local/texlive/2014/texmf-dist/fonts/type1/public/ams
+fonts/cm/cmr12.pfb></usr/local/texlive/2014/texmf-dist/fonts/type1/public/amsfo
+nts/cm/cmr17.pfb></usr/local/texlive/2014/texmf-dist/fonts/type1/public/amsfont
+s/cm/cmss12.pfb></usr/local/texlive/2014/texmf-dist/fonts/type1/public/amsfonts
+/cm/cmsy10.pfb></usr/local/texlive/2014/texmf-dist/fonts/type1/public/amsfonts/
+cm/cmti10.pfb></usr/local/texlive/2014/texmf-dist/fonts/type1/public/amsfonts/c
+m/cmtt10.pfb>
+Output written on main.pdf (4 pages, 105840 bytes).
 PDF statistics:
- 37 PDF objects out of 1000 (max. 8388607)
- 25 compressed objects within 1 object stream
+ 45 PDF objects out of 1000 (max. 8388607)
+ 31 compressed objects within 1 object stream
  0 named destinations out of 1000 (max. 500000)
  1 words of extra memory for PDF output out of 10000 (max. 10000000)
 

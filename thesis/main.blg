@@ -1,53 +1,49 @@
 This is BibTeX, Version 0.99d (TeX Live 2014)
 Capacity: max_strings=35307, hash_size=35307, hash_prime=30011
 The top-level auxiliary file: main.aux
-The style file: plain.bst
+The style file: plainnat.bst
 Database file #1: references.bib
-Repeated entry---line 43 of file references.bib
- : @inproceedings{karpathy2014deep
- :                                ,
-I'm skipping whatever remains of this entry
 Warning--can't use both volume and number fields in Farhadi2010
 Warning--can't use both volume and number fields in Russakovsky2012
-You've used 10 entries,
-            2118 wiz_defined-function locations,
-            562 strings with 6478 characters,
-and the built_in function-call counts, 4739 in all, are:
-= -- 439
-> -- 325
-< -- 7
-+ -- 128
-- -- 118
-* -- 370
-:= -- 787
-add.period$ -- 32
-call.type$ -- 10
-change.case$ -- 89
-chr.to.int$ -- 0
-cite$ -- 12
-duplicate$ -- 161
-empty$ -- 293
-format.name$ -- 118
-if$ -- 973
-int.to.chr$ -- 0
-int.to.str$ -- 10
-missing$ -- 10
-newline$ -- 53
-num.names$ -- 20
-pop$ -- 96
+You've used 11 entries,
+            2773 wiz_defined-function locations,
+            672 strings with 7809 characters,
+and the built_in function-call counts, 7196 in all, are:
+= -- 619
+> -- 582
+< -- 10
++ -- 194
+- -- 183
+* -- 627
+:= -- 1118
+add.period$ -- 44
+call.type$ -- 11
+change.case$ -- 94
+chr.to.int$ -- 11
+cite$ -- 24
+duplicate$ -- 278
+empty$ -- 456
+format.name$ -- 200
+if$ -- 1499
+int.to.chr$ -- 1
+int.to.str$ -- 1
+missing$ -- 11
+newline$ -- 72
+num.names$ -- 44
+pop$ -- 186
 preamble$ -- 1
-purify$ -- 79
+purify$ -- 83
 quote$ -- 0
-skip$ -- 126
+skip$ -- 255
 stack$ -- 0
-substring$ -- 214
-swap$ -- 57
+substring$ -- 186
+swap$ -- 58
 text.length$ -- 7
 text.prefix$ -- 0
 top$ -- 0
-type$ -- 40
+type$ -- 121
 warning$ -- 2
-while$ -- 37
-width$ -- 12
-write$ -- 113
-(There was 1 error message)
+while$ -- 50
+width$ -- 0
+write$ -- 168
+(There were 2 warnings)
