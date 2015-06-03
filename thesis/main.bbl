@@ -1,4 +1,4 @@
-\begin{thebibliography}{11}
+\begin{thebibliography}{13}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{\texttt{#1}}
 \expandafter\ifx\csname urlstyle\endcsname\relax
@@ -11,8 +11,6 @@ Peter Carbonetto, Nando de~Freitas, Kobus Barnard, N~Freitas, and Kobus
   Barnard.
 \newblock {A statistical model for general contextual object recognition}.
 \newblock In \emph{Computer Vision-ECCV 2004}, pages 350--362. Springer, 2004.
-\newblock URL
-  \url{papers3://publication/uuid/48FBF7F2-62EE-4E3C-95C6-0F73608EE2A6}.
 
 \bibitem[Farhadi et~al.(2010)Farhadi, Hejrati, Sadeghi, Young, Rashtchian,
   Hockenmaier, and Forsyth]{Farhadi2010}
@@ -36,6 +34,13 @@ Andrej Karpathy and Li~Fei-Fei.
 \newblock {Deep visual-semantic alignments for generating image descriptions}.
 \newblock \emph{arXiv preprint arXiv:1412.2306}, 2014.
 
+\bibitem[Karpathy et~al.(2014)Karpathy, Joulin, and
+  Fei-Fei]{karpathyjoulin2014deep}
+Andrej Karpathy, Armand Joulin, and Li~Fei-Fei.
+\newblock {Deep Fragment Embeddings for Bidirectional Image Sentence Mapping}.
+\newblock In \emph{Advances in Neural Information Processing Systems}, pages
+  1--9, 2014.
+
 \bibitem[Lazar et~al.(2007)Lazar, Allen, Kleinman, and
   Malarkey]{lazar2007frustrates}
 Jonathan Lazar, Aaron Allen, Jason Kleinman, and Chris Malarkey.
@@ -51,8 +56,6 @@ Tsung-Yi Lin, Michael Maire, Serge Belongie, James Hays, Pietro Perona, Deva
 \newblock {Microsoft COCO: Common Objects in Context}.
 \newblock \emph{arXiv preprint arXiv \ldots}, cs.CV, 2014.
 \newblock \doi{10.1007/978-3-319-10602-1\_48}.
-\newblock URL
-  \url{http://arxiv.org/abs/1405.0312v2$\backslash$npapers3://publication/uuid/F5BB1978-0B9E-4127-9863-85A71B8F8225}.
 
 \bibitem[Mao et~al.(2014)Mao, Xu, Yang, Wang, and Yuille]{mao2014explain}
 Junhua Mao, Wei Xu, Yi~Yang, Jiang Wang, and Alan~L Yuille.
@@ -86,6 +89,12 @@ Olga Russakovsky and Li~Fei-Fei.
 Karen Simonyan and Andrew Zisserman.
 \newblock {Very deep convolutional networks for large-scale image recognition}.
 \newblock \emph{arXiv preprint arXiv:1409.1556}, 2014.
+
+\bibitem[Vinyals et~al.(2014)Vinyals, Toshev, Bengio, and
+  Erhan]{vinyals2014show}
+Oriol Vinyals, Alexander Toshev, Samy Bengio, and Dumitru Erhan.
+\newblock {Show and tell: A neural image caption generator}.
+\newblock \emph{arXiv preprint arXiv:1411.4555}, 2014.
 
 \bibitem[Yang et~al.(2011)Yang, Teo, Daume, and Aloimonos]{Yang2011}
 Yezhou Yang, Ching~Lik Teo, Hal Daume, and Yiannis Aloimonos.

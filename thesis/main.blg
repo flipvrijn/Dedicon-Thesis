@@ -5,45 +5,45 @@ The style file: plainnat.bst
 Database file #1: references.bib
 Warning--can't use both volume and number fields in Farhadi2010
 Warning--can't use both volume and number fields in Russakovsky2012
-You've used 11 entries,
+You've used 13 entries,
             2773 wiz_defined-function locations,
-            672 strings with 7809 characters,
-and the built_in function-call counts, 7196 in all, are:
-= -- 619
-> -- 582
-< -- 10
-+ -- 194
-- -- 183
-* -- 627
-:= -- 1118
-add.period$ -- 44
-call.type$ -- 11
-change.case$ -- 94
-chr.to.int$ -- 11
-cite$ -- 24
-duplicate$ -- 278
-empty$ -- 456
-format.name$ -- 200
-if$ -- 1499
+            679 strings with 7997 characters,
+and the built_in function-call counts, 8177 in all, are:
+= -- 698
+> -- 651
+< -- 11
++ -- 217
+- -- 204
+* -- 705
+:= -- 1265
+add.period$ -- 48
+call.type$ -- 13
+change.case$ -- 107
+chr.to.int$ -- 13
+cite$ -- 28
+duplicate$ -- 327
+empty$ -- 535
+format.name$ -- 223
+if$ -- 1707
 int.to.chr$ -- 1
 int.to.str$ -- 1
-missing$ -- 11
-newline$ -- 72
-num.names$ -- 44
-pop$ -- 186
+missing$ -- 13
+newline$ -- 80
+num.names$ -- 52
+pop$ -- 217
 preamble$ -- 1
-purify$ -- 83
+purify$ -- 94
 quote$ -- 0
-skip$ -- 255
+skip$ -- 293
 stack$ -- 0
-substring$ -- 186
-swap$ -- 58
-text.length$ -- 7
+substring$ -- 206
+swap$ -- 66
+text.length$ -- 8
 text.prefix$ -- 0
 top$ -- 0
-type$ -- 121
+type$ -- 143
 warning$ -- 2
-while$ -- 50
+while$ -- 59
 width$ -- 0
-write$ -- 168
+write$ -- 189
 (There were 2 warnings)
