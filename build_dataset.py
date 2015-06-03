@@ -6,6 +6,7 @@ import os
 import time
 import scipy.io
 from feature_extractor import *
+from progress.bar import Bar
 
 def parse_line(line, previous_image, sentence_id):
     IID, _, sentence = line.split('\t')
@@ -68,11 +69,28 @@ def parse_descriptions(path):
 
     return images
 
+def parse_textual_feats(path):
+    feats = {}
+    with open(path, 'rb') as in_file:
+        lines = in_file.readlines()
+        bar = Bar('Parsing', max=len(lines))
+        for line in lines:
+            chunks = line.split(' ')
+            IID, count, pairs = (chunks[0], chunks[1], chunks[2:len(chunks)])
+
+            feats[IID] = []
+            for i in range(0, len(pairs) - 1, 2):
+                feats[IID].append({pairs[i].strip(): int(pairs[i+1].strip())})
+            bar.next()
+        bar.finish()     
+    return feats
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--model_def_path',dest='model_def_path', type=str , help='Path to the VGG_ILSVRC_16_layers model definition file.')
     parser.add_argument('--model_path', dest='model_path',type=str,  help='Path to VGG_ILSVRC_16_layers pretrained model weight file i.e VGG_ILSVRC_16_layers.caffemodel')
     parser.add_argument('--descriptions_path', dest='descriptions_path', type=str, help='Path to file containing descriptions of images.')
+    parser.add_argument('--textual_path', dest='textual_path', type=str, help='Path to file containing textual features of images.')
     parser.add_argument('-i',dest='input_images',help='Path to Directory containing images to be processed.')
     parser.add_argument('--WITH_GPU', action='store_true', dest='WITH_GPU', help = 'Caffe uses GPU for feature extraction')
     parser.add_argument('-o', dest='output_path', type=str, help='Path to output file for dataset.')
@@ -82,6 +100,7 @@ if __name__ == '__main__':
     input_directory = args.input_images
     path_model_def_file = args.model_def_path
     descriptions_path = args.descriptions_path
+    textual_path = args.textual_path
     path_model  = args.model_path
     WITH_GPU    = args.WITH_GPU
     out_directory = args.output_path
@@ -97,6 +116,19 @@ if __name__ == '__main__':
     
     if not os.path.exists(path_model):
         raise RuntimeError("%s , Path to pretrained model file does not exist"%(path_model))
+
+    if not os.path.exists(descriptions_path):
+        raise RuntimeError("%s, Path to descriptions file does not exist" % descriptions_path)
+
+    if not os.path.exists(textual_path):
+        raise RuntimeError("%s, Path to textual features does not exist" % textual_path)
+
+    #
+    # Parsing textual features file
+    # 
+    print 'Parsing textual features file %s' % textual_path
+
+    feats = parse_textual_feats(textual_path)
 
     #
     # Parsing descriptions file
@@ -119,9 +151,9 @@ if __name__ == '__main__':
     for idx, image in enumerate(output['images']):
     	category_string = {0: 'train', 1: 'test', 2: 'val'}
     	image['split'] = category_string[category_vector[idx]]
+        image['feats'] = feats[image['IID']]
     	output['images'][idx] = image
     	path_imgs.append(os.path.join(input_directory, image['filename'][:2], image['filename']))
-
     
     json_out_file = os.path.join(out_directory, 'dataset.json')
     print 'Saving descriptions JSON file to %s' % json_out_file
