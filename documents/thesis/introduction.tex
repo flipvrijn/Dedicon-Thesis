@@ -13,6 +13,7 @@ The next section provides more clarity of the concept textual context that is us
 
 
 \subsection{Textual context}
+\label{sec:textual-context}
 Before going into more detail of previous studies, first some clarification on the definition of textual context that will be used in the rest of this thesis.
 
 In linguistics context refers to the commonality of implicit information between sentences. In \cite{Fortu2005} this is exemplified with the following pair of sentences:
@@ -29,6 +30,7 @@ However, when a context (Figure~\ref{fig:w-textual-context}) is introduced this 
 
 Thus, more formally textual context w.r.t. this thesis is:
 
+% TODO: Improve this definition
 \begin{displayquote}
 	\emph{Words or sentences that provide explicit information that can be used to support or alter the implicit information of an image}.
 \end{displayquote}
@@ -81,7 +83,19 @@ Thus, more formally textual context w.r.t. this thesis is:
 \subsection{Background}
 Multiple studies use context to categorize \cite{Rabinovich2007, carbonetto2004statistical}, segment \cite{Sande2011} or describe \cite{mao2015learning} objects or images each with their own application of context. For categorization the context in which the detected objects are present is useful to eliminate out of place labeled objects. Entirely different, for describing and segmenting objects or images context of lower-level features is used to improve the task at hand.
 
-In light of textual context, \cite{mao2015learning} harnesses the idea of novel concepts to improve generated image descriptions for the Novel Visual Concept 	learning from Sentences (NVCS) task. The core idea here is to extend a pre-trained base model with the capability to update certain concepts, that are already trained on a large dataset, with novel concepts. These novel concepts, which are image-text pairs, are included in a small dataset and do not appear in the original dataset. With limited amount of learning, the 
+In light of textual context, \citeauthor{mao2015learning} \cite{mao2015learning} harness the idea of novel concepts to improve generated image descriptions for the Novel Visual Concept learning from Sentences (NVCS) task. The core idea here is to extend a pre-trained base model with the capability to update certain concepts, that are already trained on a large dataset, with novel concepts. These novel concepts, which are image-sentence pairs, are included in a small dataset. With limited amount of learning, their model can improve the base model. Throughout the paper an example is used involving the novel Harry Potter concept \emph{quidditch}; the base model would describe an image depicting such a concept with the following sentence:
+
+\begin{displayquote}
+	\emph{``A group of people playing a game of soccer''}
+\end{displayquote}
+
+After a learning session of 100 image-sentence pairs involving quidditch, the same example image now results in:
+
+\begin{displayquote}
+	\emph{``A group of people is playing quidditch with a red ball''}
+\end{displayquote}
+
+The approach of NVCS can be seen as augmenting the generalized model with novel concepts and falls in the definition given in Section~\ref{sec:textual-context}. Here, presenting novel concepts can be seen as  providing explicit information of what is depicted on an image. The upside of their approach is that original concepts are not disturbed. However, this process is not one-shot learning, since multiple image-sentence pairs are used. Furthermore, in order to improve other concepts that are incorrectly described, a dataset per concept is required.
 
 Literature shows many studies involving object recognition and classification \cite{carbonetto2004statistical, he2015delving} using Convolutional Neural Networks (CNNs). In these studies objects ranging from inanimate to animate in images are classified, which results in a label that describes to which class each object belongs to. One of the more recent studies \cite{he2015delving} claims a performance that even surpasses human performance on classifying images from the ImageNET dataset \cite{russakovsky2014imagenet}. While this study focuses on the image classification by labeling images, other studies \cite{mao2014explain, mitchell2012midge, Yang2011, Farhadi2010} have focused on the generation of sentences from images by combining a computer vision approach with linguistic models. 
 
@@ -91,8 +105,8 @@ The second type of approach is using probabilistic machine learning to learn the
 
 In this taxonomy of approaches for description generation, this thesis fits into the latter approach where multimodal input is used to learn a probability density over image-description pairs.
 
-\subsection{Existing model}
-The overall model that will be used is based on the model by \citeauthor{karpathyfeifei2014deep} where a CNN is combined with either a Recurrent Neural Network \cite{karpathyfeifei2014deep} or a Long-Short Term Memory (LSTM) network \cite{vinyals2014show}. Both approaches use a CNN by \citeauthor{simonyan2014very} \cite{simonyan2014very} to extract features from an image and a model which can integrate the image features and a sequence of words.  
+\subsection{Base model}
+The base model that will be used is based on the model by \citeauthor{karpathyfeifei2014deep} where a CNN is combined with either a Recurrent Neural Network \cite{karpathyfeifei2014deep} or a Long-Short Term Memory (LSTM) network \cite{vinyals2014show}. Both approaches use a CNN by \citeauthor{simonyan2014very} \cite{simonyan2014very} to extract features from an image and a model which can integrate the image features and a sequence of words.  
 
 When an LSTM model is compared to an RNN model an LSTM model tends to outperform the other model on sequence tasks such as generating sentences from images or translation \cite{vinyals2014show}. 
 % TODO: Extend this part
