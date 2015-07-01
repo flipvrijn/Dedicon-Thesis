@@ -1,30 +1,13 @@
 import json
 import time
-import numpy as np
 from collections import defaultdict, OrderedDict
+import numpy as np
+
 from IPython import embed
-from progress.bar import Bar
-from theano import tensor
+from pybrain.structure.networks import BidirectionalNetwork
+from pybrain.structure.modules import ReluLayer
 
-from blocks.graph import ComputationGraph
-from blocks.model import Model
-from blocks.algorithms import GradientDescent, Adam
-from blocks.main_loop import MainLoop
-from blocks.bricks.cost import CategoricalCrossEntropy
-from blocks.bricks.recurrent import SimpleRecurrent, Bidirectional
-from blocks.initialization import IsotropicGaussian, Constant
-from blocks.bricks import Rectifier, Linear, Softmax
-from blocks.bricks.lookup import LookupTable
-
-from fuel.datasets import Dataset
-from fuel.transformers import Mapping, Batch, Padding
-from fuel.streams import DataStream
-from fuel.schemes import ConstantScheme
-
-class Vocab(Dataset):
-
-    provides_sources = ('features',)
-    example_iteration_scheme = None
+class Vocab(object):
 
     def __init__(self, split_name='train', **kwargs):
         self.split_name = split_name
@@ -45,26 +28,18 @@ class Vocab(Dataset):
             self.iterSentences(self.split, self.split_name), 
             word_count_threshold)
 
-        super(Vocab, self).__init__()
+        self.dataset = []
+        for sentence in self.iterSentences(self.split, self.split_name):
+            data = []
+            for w in sentence['tokens']:
+                if w in self.wordtoix:
+                    word_vec = np.zeros(len(self.ixtoword))
+                    word_vec[self.wordtoix[w]] = np.intc(1)
+                    data.append(word_vec)
+            self.dataset.append(data)
 
-    def open(self):
-        return self.iterSentences(self.split, self.split_name)
-
-    def get_data(self, state=None, request=None):
-        if request is not None:
-            raise ValueError
-
-        current_state = next(state)
-
-        data = []
-        for w in current_state['tokens']:
-            if w in self.wordtoix:
-                word_vec = np.zeros(len(self.ixtoword))
-                word_vec[self.wordtoix[w]] = np.intc(1)
-                data.append(word_vec)
-        embed()
-        return (data,)
-        
+    def sequenceLength(self):
+        return len(self.dataset[0][0])
 
     def iterSentences(self, dataset, split = 'train'):
         for img in dataset[split]: 
@@ -113,69 +88,12 @@ class Vocab(Dataset):
         bias_init_vector -= np.max(bias_init_vector) # shift to nice numeric range
         return wordtoix, ixtoword, bias_init_vector
 
-
-class Network(object):
-
-    def __init__(self, vocab, dim):
-        self.vocab = vocab
-        self.dim = dim
-
-        self.network = Bidirectional(SimpleRecurrent(dim, Rectifier()),
-            weights_init=IsotropicGaussian(0.01),
-            biases_init=Constant(vocab.bias_init_vector))
-
-        self.data_stream = self.vocab.get_example_stream()
-        self.data_stream = Mapping(self.data_stream, self.make_target, add_sources=('target',))
-        self.data_stream = Batch(self.data_stream, iteration_scheme=ConstantScheme(100))
-
-    def initialize(self):
-        self.network.initialize()
-
-    def make_target(self, data):
-        return data
-
-    def components(self):
-        features = tensor.lmatrix('features')
-        target = tensor.lmatrix('target')
-        lookup = LookupTable(len(vocab.wordtoix), dim,
-            weights_init=IsotropicGaussian(0.01),
-            biases_init=Constant(0.))
-        lookup.initialize()
-        y_hat = network.network.apply(lookup.apply(features))
-
-        linear = Linear(2 * self.dim, len(vocab.wordtoix),
-            weights_init=IsotropicGaussian(0.01),
-            biases_init=Constant(0.))
-        linear.initialize()
-        y_hat = linear.apply(y_hat)
-
-        seq_length = y_hat.shape[0]
-        batch_size = y_hat.shape[1]
-        y_hat = Softmax().apply(y_hat.reshape((seq_length * batch_size, 1))).reshape(y_hat.shape)
-
-        cost = CategoricalCrossEntropy().apply(
-            target.flatten(),
-            y_hat.reshape((-1, len(vocab.wordtoix)))) * seq_length * batch_size
-        cost.name = 'cost'
-        cg = ComputationGraph([cost])
-        model = Model(cost)
-        algorithm = GradientDescent(step_rule=Adam(), cost=cost, params=cg.parameters)
-
-        return (model, algorithm, self.data_stream)
-
 if __name__ == '__main__':
-    dim = 100
     vocab = Vocab()
 
-    network = Network(vocab, dim)
-    network.initialize()
-    model, algorithm, data_stream = network.components()
+    print 'Building network...'
+    n = BidirectionalNetwork(seqlen=vocab.sequenceLength(), inputsize=1, hiddensize=600)
+    n.componentclass = ReluLayer
+    n.outcomponentclass = ReluLayer
 
     embed()
-
-    main_loop = MainLoop(model=model, algorithm=algorithm, data_stream=data_stream)
-
-    main_loop.run()
-
-    #rnn = network(vocab_bias_vector=vocab[2])
-    #rnn.initialize()
