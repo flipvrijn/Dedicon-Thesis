@@ -16,6 +16,4 @@ __pycache__/
 *.log
 
 datasets/
-input/
-output/
 *.caffemodel
