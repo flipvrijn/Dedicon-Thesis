@@ -48,8 +48,8 @@ if __name__ == '__main__':
     flickr_data = json.load(open(fd, 'r'))
 
     # Load checkpoint file if it exists
-    cp_file = '%s/flickr_data_sanitized.%d.json' % (cp_path, time.time())
-    cp_files = glob.glob('%s/flickr_data_sanitized.*.json' % cp_path)
+    cp_file = '%s/coco_sanitized.%d.json' % (cp_path, time.time())
+    cp_files = glob.glob('%s/coco_sanitized.*.json' % cp_path)
     if cp_files:
         cp_latest_file = sorted(cp_files)[-1]
         if os.path.isfile(cp_latest_file):
@@ -83,3 +83,9 @@ if __name__ == '__main__':
 
     print 'Writing Flickr data to file...'
     json.dump({'images': flickr_data}, open(fo, 'w'))
+
+    print 'Cleaning up checkpoint files...'
+    if cp_files:
+        for f in cp_files:
+            print 'Cleaning up %s' % f
+            os.remove(f)

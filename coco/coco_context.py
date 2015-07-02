@@ -36,28 +36,28 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--key',dest='api_key', type=str, help='Flickr API key.')
     parser.add_argument('--secret', dest='api_secret',type=str, help='Flickr API secret.')
-    parser.add_argument('--annotation', dest='annotation_path', type=str, help='Path to the annotations file.')
+    parser.add_argument('--instances', dest='instances_path', type=str, help='Path to the instances file.')
     parser.add_argument('--cp',dest='cp_path',help='Path to the directory where checkpoints are saved.')
     parser.add_argument('-o', dest='output_path', type=str, help='Path to output file for dataset.')
 
     args = parser.parse_args()
     api_key      = args.api_key
     api_secret   = args.api_secret
-    dataset_path = args.annotation_path
+    dataset_path = args.instances_path
     out_path     = args.output_path
     cp_path      = args.cp_path
 
     flickr = flickrapi.FlickrAPI(api_key, api_secret, format='parsed-json')
 
-    print 'Loading JSON annotations file...'
+    print 'Loading JSON instances file...'
     coco_dataset = json.load(open(dataset_path, 'r'))
 
     flickr_data = {}
     not_found_counter = 0
 
     # Load checkpoint file if it exists
-    cp_file = '%s/flickr_data.%d.json' % (cp_path, time.time())
-    cp_files = glob.glob('%s/flickr_data.*.json' % cp_path)
+    cp_file = '%s/coco_context.%d.json' % (cp_path, time.time())
+    cp_files = glob.glob('%s/coco_context.*.json' % cp_path)
     if cp_files:
         cp_latest_file = sorted(cp_files)[-1]
         if os.path.isfile(cp_latest_file):
@@ -79,7 +79,7 @@ if __name__ == '__main__':
                 # Image is no longer available :(
                 if not data:
                     not_found_counter = not_found_counter + 1
-                    print '\nERROR: Photo %s (%s) not found on Flickr! %d in total' % (photo_id, img_id, not_found_counter)
+                    print '\nERROR: Photo %s not found on Flickr! %d in total' % (img_id, not_found_counter)
             else:
                 if flickr_data[img_id] is None:
                     # Image was not found in previous run
@@ -94,7 +94,7 @@ if __name__ == '__main__':
 
                         if not data:
                             not_found_counter = not_found_counter + 1
-                            print '\nERROR: Photo %s (%s) not found on Flickr! %d in total' % (photo_id, img_id, not_found_counter)
+                            print '\nERROR: Photo %s not found on Flickr! %d in total' % (img_id, not_found_counter)
             bar.next()
         except:
             # Interrupted and saving to file to, to continue later
@@ -106,3 +106,9 @@ if __name__ == '__main__':
 
     print 'Writing Flickr data to file...'
     json.dump({'images': flickr_data}, open(out_path, 'w'))
+
+    print 'Cleaning up checkpoint files...'
+    if cp_files:
+        for f in cp_files:
+            print 'Cleaning up %s' % f
+            os.remove(f)
