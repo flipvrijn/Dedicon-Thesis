@@ -1,7 +1,0 @@
-[submodule "caffe-fast-rcnn"]
-	path = caffe-fast-rcnn
-	url = https://github.com/rbgirshick/caffe-fast-rcnn.git
-	branch = fast-rcnn
-[submodule "data/coco"]
-	path = data/coco
-	url = https://github.com/pdollar/coco
