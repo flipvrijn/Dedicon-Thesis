@@ -135,4 +135,6 @@ if __name__ == '__main__':
             # Interrupted and saving to file to, to continue later
             print '\nInterrupted, saving to file...'
             json.dump(output, open(cp_file, 'w'))
+
+            raise
     bar.finish()
