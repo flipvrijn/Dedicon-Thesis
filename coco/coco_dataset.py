@@ -80,6 +80,8 @@ if __name__ == '__main__':
 
     context_id = 0
 
+    time_start = time.time()
+
     bar = Bar('Merging', max=len(instances['images'])) # , suffix='%(percent)d%%'
     for image in instances['images']:
         try:
@@ -138,3 +140,8 @@ if __name__ == '__main__':
 
             raise
     bar.finish()
+
+    print 'Writing to file...'
+    json.dump(output, open(args.output_path, 'w'))
+
+    print 'Done merging (took %ds)!' % (time.time() - time_start)
