@@ -23,6 +23,7 @@ fi
 instancesfile=$DIR/instances_${split}2014.json
 contextfile=$DIR/coco_${split}_context.json
 sanitizedfile=$DIR/coco_${split}_sanitized.json
+datasetfile=$DIR/coco_${split}_dataset.json
 
 if [ -f $contextfile ]; then
   echo "Skipping fetching Flickr context..."
@@ -44,6 +45,18 @@ else
     -i $contextfile \
     -o $sanitizedfile \
     --cp $DIR
+fi
+
+if [ -f $datasetfile ]; then
+  echo "Skipping building dataset file..."
+else
+  echo ">>> Building dataset file"
+  python2.7 coco/coco_dataset.py \
+    --context=$contextfile \
+    --caption=$sanitizedfile \ 
+    --instances=$instancesfile \ 
+    --cp=$DIR \
+    -o=$datasetfile
 fi
 
 echo "Done!"
