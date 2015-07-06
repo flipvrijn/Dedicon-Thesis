@@ -71,6 +71,7 @@ if __name__ == '__main__':
     Generates and visualizes regions 
     """
     parser = argparse.ArgumentParser()
+    parser.add_argument('--image', dest='single_image_path', type=str, default=None, help='Path to single image file.')
     parser.add_argument('-i',dest='image_path', type=str, help='Directory containing images.')
     parser.add_argument('-o',dest='output_path', type=str, help='Path to output file.')
     parser.add_argument('--viz', dest='viz', type=int, default=0, help='Visualize selective search')
@@ -78,17 +79,22 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     viz = args.viz
-    images = glob.glob('%s/*.jpg' % args.image_path)
+    if not args.single_image_path:
+        images = glob.glob('%s/*.jpg' % args.image_path)
+    else:
+        images = [args.single_image_path]
 
+    # If images are available in input path
     if len(images):
-        image_names = [None for i in xrange(len(images))]
-        boxes       = [None for i in xrange(len(images))]
+        image_names = [None for i in xrange(len(images))] # Holds the image filenames
+        boxes       = [None for i in xrange(len(images))] # Holds the bounding boxes per image
 
         bar = Bar('Searching boxes', max=len(images), suffix='%(percent)d%%')
         for image_idx, image in enumerate(images):
             img = skimage.io.imread(image)
             regions = selective_search(img)
 
+            # Show the visualization and ask whether to continue with visualizing
             if viz:
                 visualize(img, regions, args)
                 sys.stdout.write('Keep visualizing? [y/n]: ')
@@ -96,17 +102,21 @@ if __name__ == '__main__':
                 if choice != 'y':
                     viz = False
 
+            # Put all regions of the image in a collection
             boxes_image = np.zeros([len(regions), 4], dtype=np.double)
             for idx_region, data in enumerate(regions):
                 _, (y0, x0, y1, x1) = data
                 boxes_image[idx_region] = [x0, y0, x1, y1]
+
+            # Store the bounding boxes in the collection
             boxes[image_idx] = boxes_image
+            # Store the image filename in the collection
             image_names[image_idx] = os.path.basename(image)
 
             bar.next()
         bar.finish()
         
         print 'Writing to file %s...' % args.output_path
-        hdf5storage.savemat(args.output_path, {'images': image_names, 'boxes': boxes}, format='7.3', oned_as='row')
+        hdf5storage.savemat(args.output_path, {'images': image_names, 'boxes': boxes}, format='7.3', oned_as='row', store_python_metadata=True)
     else:
         print 'Could not find any images in %s' %args.image_path
