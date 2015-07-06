@@ -2,7 +2,7 @@
 #
 #
 
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/../downloads/images/" && pwd )"
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/../downloads/" && pwd )"
 cd $DIR
 
 echo "Applying selective search to images..."
@@ -12,7 +12,10 @@ if [ $# -ne 1 ]; then
     read -p "Split [train|val]: " split
 else
     split=$1
+fi
+
+selectivesearchfile=$DIR/selective_search_${split}.mat
 
 python2.7 ../selective_search.py \
-    -i $DIR/$split \
-    -o $DIR/../boxes_${split}.mat
+    -i $DIR/images/${split} \
+    -o $selectivesearchfile
