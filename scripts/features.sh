@@ -12,6 +12,7 @@ if [ $# -ne 1 ]; then
     read -p "Split [train|val]: " split
 else
     split=$1
+fi
 
 python2.7 ../selective_search.py \
     -i $DIR/$split \

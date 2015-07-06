@@ -4,7 +4,7 @@ import argparse
 import skimage
 import glob
 import sys
-import h5py
+import hdf5storage
 import os
 import numpy as np
 import scipy.io
@@ -106,7 +106,4 @@ if __name__ == '__main__':
     bar.finish()
     
     print 'Writing to file %s...' % args.output_path
-    scipy.io.savemat(args.output_path, {
-        'images': image_names,
-        'boxes': boxes
-    })
+    hdf5storage.savemat(args.output_path, {'images': image_names, 'boxes': boxes}, format='7.3', oned_as='row')
