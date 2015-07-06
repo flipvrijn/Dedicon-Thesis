@@ -80,30 +80,33 @@ if __name__ == '__main__':
     viz = args.viz
     images = glob.glob('%s/*.jpg' % args.image_path)
 
-    image_names = [None for i in xrange(len(images))]
-    boxes       = [None for i in xrange(len(images))]
+    if len(images):
+        image_names = [None for i in xrange(len(images))]
+        boxes       = [None for i in xrange(len(images))]
 
-    bar = Bar('Searching boxes', max=len(images), suffix='%(percent)d%%')
-    for image_idx, image in enumerate(images):
-        img = skimage.io.imread(image)
-        regions = selective_search(img)
+        bar = Bar('Searching boxes', max=len(images), suffix='%(percent)d%%')
+        for image_idx, image in enumerate(images):
+            img = skimage.io.imread(image)
+            regions = selective_search(img)
 
-        if viz:
-            visualize(img, regions, args)
-            sys.stdout.write('Keep visualizing? [y/n]: ')
-            choice = raw_input().lower()
-            if choice != 'y':
-                viz = False
+            if viz:
+                visualize(img, regions, args)
+                sys.stdout.write('Keep visualizing? [y/n]: ')
+                choice = raw_input().lower()
+                if choice != 'y':
+                    viz = False
 
-        boxes_image = np.zeros([len(regions), 4], dtype=np.double)
-        for idx_region, data in enumerate(regions):
-            _, (y0, x0, y1, x1) = data
-            boxes_image[idx_region] = [x0, y0, x1, y1]
-        boxes[image_idx] = boxes_image
-        image_names[image_idx] = os.path.basename(image)
+            boxes_image = np.zeros([len(regions), 4], dtype=np.double)
+            for idx_region, data in enumerate(regions):
+                _, (y0, x0, y1, x1) = data
+                boxes_image[idx_region] = [x0, y0, x1, y1]
+            boxes[image_idx] = boxes_image
+            image_names[image_idx] = os.path.basename(image)
 
-        bar.next()
-    bar.finish()
-    
-    print 'Writing to file %s...' % args.output_path
-    hdf5storage.savemat(args.output_path, {'images': image_names, 'boxes': boxes}, format='7.3', oned_as='row')
+            bar.next()
+        bar.finish()
+        
+        print 'Writing to file %s...' % args.output_path
+        hdf5storage.savemat(args.output_path, {'images': image_names, 'boxes': boxes}, format='7.3', oned_as='row')
+    else:
+        print 'Could not find any images in %s' %args.image_path
