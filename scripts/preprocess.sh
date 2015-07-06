@@ -51,7 +51,7 @@ if [ -f $datasetfile ]; then
   echo "Skipping building dataset file..."
 else
   echo ">>> Building dataset file"
-  python2.7 coco/coco_dataset.py \
+  python2.7 ../coco/coco_dataset.py \
     --context=$contextfile \
     --caption=$sanitizedfile \ 
     --instances=$instancesfile \ 

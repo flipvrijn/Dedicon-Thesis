@@ -105,6 +105,7 @@ if __name__ == '__main__':
         bar.next()
     bar.finish()
     
+    print 'Writing to file %s...' % args.output_path
     scipy.io.savemat(args.output_path, {
         'images': image_names,
         'boxes': boxes
