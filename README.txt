@@ -9,8 +9,3 @@ This project consists of several parts. Each part will be discussed into more de
 /networks:	Various networks (RCNN, RNN, BRNN) to perform various tasks.
 /output:	Directory that could contains output files.
 /scripts: 	Shell scripts to run parts of the experiment. More info inside.
-
-
-TODO:
-
-* Add shell script for applying selective search to images to generate candidate bounding boxes for regions.

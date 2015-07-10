@@ -17,5 +17,5 @@ fi
 selectivesearchfile=$DIR/selective_search_${split}.mat
 
 python2.7 ../selective_search.py \
-    -i $DIR/images/${split}/ \
+    -i $DIR/images/${split}2014/ \
     -o $selectivesearchfile
