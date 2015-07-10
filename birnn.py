@@ -24,7 +24,6 @@ class Vocab(object):
     def __init__(self, dataset_path, split_name='train'):
         self.split_name = split_name
 
-        dataset_path = 'datasets/flickr8k.json'
         word_count_threshold = 5
 
         # Load dataset
@@ -164,6 +163,7 @@ if __name__ == '__main__':
     parser.add_argument('--nhidden', dest='nhidden', default=300, type=int, help='Number of hidden units.')
     parser.add_argument('--embed', dest='embed', default=50, type=int, help='Dimension of the embedding')
     parser.add_argument('--wscale', dest='weight_scale', default=0.1, type=float, help='Initial weight scale.')
+    parser.add_argument('-o', dest='out_file', type=str, help='Output file.')
 
     args = parser.parse_args()
 
@@ -190,15 +190,15 @@ if __name__ == '__main__':
     print 'Compiling theano function'
     f = theano.function([source_sentence], representation)
 
-    representations = []
+    reps = np.empty(len(vocab.dataset), dtype=object)
 
     bar = Bar('Encoding', max=len(vocab.dataset))
     for idx, sentence in enumerate(vocab.dataset):
-        representations.append(f(sentence))
+        reps[idx] = f(sentence).transpose((1, 2, 0))
         bar.next()
-
-        if idx == 2:
-            break;
     bar.finish()
 
-    embed()
+    print 'Saving data to file %s...' % args.out_file
+    np.save(args.out_file, reps)
+
+    print 'Done!'
