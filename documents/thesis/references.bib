@@ -77,6 +77,13 @@ journal = {arXiv preprint arXiv:1410.1090},
 title = {{Explain images with multimodal recurrent neural networks}},
 year = {2014}
 }
+@article{russakovsky2014imagenet,
+author = {Russakovsky, Olga and Deng, Jia and Su, Hao and Krause, Jonathan and Satheesh, Sanjeev and Ma, Sean and Huang, Zhiheng and Karpathy, Andrej and Khosla, Aditya and Bernstein, Michael and Others},
+file = {:Users/Flip/Library/Application Support/Mendeley Desktop/Downloaded/Russakovsky et al. - 2014 - Imagenet large scale visual recognition challenge.pdf:pdf},
+journal = {arXiv preprint arXiv:1409.0575},
+title = {{Imagenet large scale visual recognition challenge}},
+year = {2014}
+}
 @inproceedings{karpathyjoulin2014deep,
 abstract = {We introduce a model for bidirectional retrieval of images and sentences through a multi-modal embedding of visual and natural language data. Unlike previous models that directly map images or sentences into a common embedding space, our model works on a finer level and embeds fragments of images (objects) and fragments of sentences (typed dependency tree relations) into a common space. In addition to a ranking objective seen in previous work, this allows us to add a new fragment alignment objective that learns to directly associate these fragments across modalities. Extensive experimental evaluation shows that reasoning on both the global level of images and sentences and the finer level of their respective fragments significantly improves performance on image-sentence retrieval tasks. Additionally, our model provides interpretable predictions since the inferred inter-modal fragment alignment is explicit.},
 archivePrefix = {arXiv},
@@ -87,13 +94,6 @@ eprint = {1406.5679},
 file = {:Users/Flip/Library/Application Support/Mendeley Desktop/Downloaded/Karpathy, Joulin, Li - 2014 - Deep fragment embeddings for bidirectional image sentence mapping.pdf:pdf},
 pages = {1--9},
 title = {{Deep Fragment Embeddings for Bidirectional Image Sentence Mapping}},
-year = {2014}
-}
-@article{russakovsky2014imagenet,
-author = {Russakovsky, Olga and Deng, Jia and Su, Hao and Krause, Jonathan and Satheesh, Sanjeev and Ma, Sean and Huang, Zhiheng and Karpathy, Andrej and Khosla, Aditya and Bernstein, Michael and Others},
-file = {:Users/Flip/Library/Application Support/Mendeley Desktop/Downloaded/Russakovsky et al. - 2014 - Imagenet large scale visual recognition challenge.pdf:pdf},
-journal = {arXiv preprint arXiv:1409.0575},
-title = {{Imagenet large scale visual recognition challenge}},
 year = {2014}
 }
 @article{Lin2004,
@@ -115,19 +115,6 @@ pages = {311--318},
 title = {{BLEU: a method for automatic evaluation of machine translation}},
 year = {2002}
 }
-@article{Lin2014,
-abstract = {We present a new dataset with the goal of advancing the state-of-the-art in object recognition by placing the question of object recognition in the context of the broader question of scene understanding. This is achieved by gathering images of complex everyday scenes containing common objects in their natural context. Objects are labeled using per-instance segmentations to aid in precise object localization. Our dataset contains photos of 91 objects types that would be easily recognizable by a 4 year old. With a total of 2.5 million labeled instances in 328k images, the creation of our dataset drew upon extensive crowd worker involvement via novel user interfaces for category detection, instance spotting and instance segmentation. We present a detailed statistical analysis of the dataset in comparison to PASCAL, ImageNet, and SUN. Finally, we provide baseline performance analysis for bounding box and segmentation detection results using a Deformable Parts Model.},
-archivePrefix = {arXiv},
-arxivId = {1405.0312},
-author = {Lin, Tsung-Yi and Maire, Michael and Belongie, Serge and Hays, James and Perona, Pietro and Ramanan, Deva and Doll\'{a}r, Piotr and Zitnick, C Lawrence},
-doi = {10.1007/978-3-319-10602-1\_48},
-eprint = {1405.0312},
-isbn = {978-3-319-10601-4},
-journal = {arXiv preprint arXiv \ldots},
-title = {{Microsoft COCO: Common Objects in Context}},
-volume = {cs.CV},
-year = {2014}
-}
 @inproceedings{Russakovsky2012,
 abstract = {We consider the task of learning visual connections between object categories using the ImageNet dataset, which is a large-scale dataset ontology containing more than 15 thousand object classes. We want to discover visual relationships between the classes that are currently missing (such as similar colors or shapes or textures). In this work we learn 20 visual attributes and use themin a zero-shot transfer learning experiment as well as to make visual connections between semantically unrelated object categories.},
 author = {Russakovsky, Olga and Fei-Fei, Li},
@@ -140,6 +127,19 @@ pages = {1--14},
 title = {{Attribute learning in large-scale datasets}},
 volume = {6553 LNCS},
 year = {2012}
+}
+@article{Lin2014,
+abstract = {We present a new dataset with the goal of advancing the state-of-the-art in object recognition by placing the question of object recognition in the context of the broader question of scene understanding. This is achieved by gathering images of complex everyday scenes containing common objects in their natural context. Objects are labeled using per-instance segmentations to aid in precise object localization. Our dataset contains photos of 91 objects types that would be easily recognizable by a 4 year old. With a total of 2.5 million labeled instances in 328k images, the creation of our dataset drew upon extensive crowd worker involvement via novel user interfaces for category detection, instance spotting and instance segmentation. We present a detailed statistical analysis of the dataset in comparison to PASCAL, ImageNet, and SUN. Finally, we provide baseline performance analysis for bounding box and segmentation detection results using a Deformable Parts Model.},
+archivePrefix = {arXiv},
+arxivId = {1405.0312},
+author = {Lin, Tsung-Yi and Maire, Michael and Belongie, Serge and Hays, James and Perona, Pietro and Ramanan, Deva and Doll\'{a}r, Piotr and Zitnick, C Lawrence},
+doi = {10.1007/978-3-319-10602-1\_48},
+eprint = {1405.0312},
+isbn = {978-3-319-10601-4},
+journal = {arXiv preprint arXiv \ldots},
+title = {{Microsoft COCO: Common Objects in Context}},
+volume = {cs.CV},
+year = {2014}
 }
 @article{Kiros2013,
 abstract = {Abstract We introduce two multimodal neural language models : models of natural language that can be conditioned on other modalities. An image-text multimodal neural language model can be used to retrieve images given complex sentence queries, retrieve phrase ... $\backslash$n},
@@ -234,14 +234,6 @@ pages = {1879--1886},
 title = {{Segmentation as selective search for object recognition}},
 year = {2011}
 }
-@inproceedings{zhu2010latent,
-author = {Zhu, Long and Chen, Yuanhao and Yuille, Alan and Freeman, William},
-booktitle = {Computer Vision and Pattern Recognition (CVPR), 2010 IEEE Conference on},
-organization = {IEEE},
-pages = {1062--1069},
-title = {{Latent hierarchical structural learning for object detection}},
-year = {2010}
-}
 @article{felzenszwalb2010object,
 author = {Felzenszwalb, Pedro F and Girshick, Ross B and McAllester, David and Ramanan, Deva},
 journal = {Pattern Analysis and Machine Intelligence, IEEE Transactions on},
@@ -250,6 +242,14 @@ pages = {1627--1645},
 publisher = {IEEE},
 title = {{Object detection with discriminatively trained part-based models}},
 volume = {32},
+year = {2010}
+}
+@inproceedings{zhu2010latent,
+author = {Zhu, Long and Chen, Yuanhao and Yuille, Alan and Freeman, William},
+booktitle = {Computer Vision and Pattern Recognition (CVPR), 2010 IEEE Conference on},
+organization = {IEEE},
+pages = {1062--1069},
+title = {{Latent hierarchical structural learning for object detection}},
 year = {2010}
 }
 @article{girshick2015fast,
@@ -281,31 +281,18 @@ issn = {1550-5499},
 title = {{Objects in context}},
 year = {2007}
 }
-@article{Modestino1992,
-abstract = {An image is segmented into a collection of disjoint regions that
-form the nodes of an adjacency graph, and image interpretation is
-achieved through assigning object labels (or interpretations) to the
-segmented regions (or nodes) using domain knowledge, extracted feature
-measurements, and spatial relationships between the various regions. The
-interpretation labels are modeled as a Markov random field (MRF) on the
-corresponding adjacency graph, and the image interpretation problem is
-then formulated as a maximum a posteriori (MAP) estimation rule, given
-domain knowledge and region-based measurements. Simulated annealing is
-used to find this best realization or optimal MAP interpretation. This
-approach also provides a systematic method for organizing and
-representing domain knowledge through appropriate design of the clique
-functions describing the Gibbs distribution representing the pdf of the
-underlying MRF. A general methodology is provided for the design of the
-clique functions. Results of image interpretation experiments on
-synthetic and real-world images are described},
-author = {Modestino, J.W. and Zhang, J.},
-doi = {10.1109/34.141552},
-issn = {0162-8828},
-journal = {IEEE Transactions on Pattern Analysis and Machine Intelligence},
-number = {6},
-title = {{A Markov random field model-based approach to image interpretation}},
-volume = {14},
-year = {1992}
+@article{Fortu2005,
+abstract = {Contextual information plays a key role in the automatic interpretation of text. This paper is concerned with the identification of textual contexts. A context taxonomy is introduced first, followed by an algorithm for detecting context boundaries, Experiments on the detection of subjective contexts using a machine learning model were performed using a set of syntactic features.},
+author = {Fortu, Ovidiu and Moldovan, Dan},
+doi = {10.1007/11508373\_13},
+file = {:Users/Flip/Downloads/j05dmof.pdf:pdf},
+isbn = {978-3-540-26924-3},
+issn = {03029743},
+journal = {Modeling and Using Context},
+pages = {169--182},
+title = {{Identification of textual contexts}},
+url = {http://link.springer.com/chapter/10.1007/11508373\_13},
+year = {2005}
 }
 @article{lavie2014meteor,
 author = {Lavie, Michael Denkowski Alon},
@@ -326,16 +313,37 @@ title = {{Rouge: A package for automatic evaluation of summaries}},
 url = {papers2://publication/uuid/5DDA0BB8-E59F-44C1-88E6-2AD316DAEF85},
 year = {2004}
 }
-@article{Fortu2005,
-abstract = {Contextual information plays a key role in the automatic interpretation of text. This paper is concerned with the identification of textual contexts. A context taxonomy is introduced first, followed by an algorithm for detecting context boundaries, Experiments on the detection of subjective contexts using a machine learning model were performed using a set of syntactic features.},
-author = {Fortu, Ovidiu and Moldovan, Dan},
-doi = {10.1007/11508373\_13},
-file = {:Users/Flip/Downloads/j05dmof.pdf:pdf},
-isbn = {978-3-540-26924-3},
-issn = {03029743},
-journal = {Modeling and Using Context},
-pages = {169--182},
-title = {{Identification of textual contexts}},
-url = {http://link.springer.com/chapter/10.1007/11508373\_13},
-year = {2005}
+@article{Modestino1992,
+abstract = {An image is segmented into a collection of disjoint regions that form the nodes of an adjacency graph, and image interpretation is achieved through assigning object labels (or interpretations) to the segmented regions (or nodes) using domain knowledge, extracted feature measurements, and spatial relationships between the various regions. The interpretation labels are modeled as a Markov random field (MRF) on the corresponding adjacency graph, and the image interpretation problem is then formulated as a maximum a posteriori (MAP) estimation rule, given domain knowledge and region-based measurements. Simulated annealing is used to find this best realization or optimal MAP interpretation. This approach also provides a systematic method for organizing and representing domain knowledge through appropriate design of the clique functions describing the Gibbs distribution representing the pdf of the underlying MRF. A general methodology is provided for the design of the clique functions. Results of image interpretation experiments on synthetic and real-world images are described},
+author = {Modestino, J.W. and Zhang, J.},
+doi = {10.1109/34.141552},
+file = {:Users/Flip/Downloads/00141552.pdf:pdf},
+issn = {0162-8828},
+journal = {IEEE Transactions on Pattern Analysis and Machine Intelligence},
+number = {6},
+title = {{A Markov random field model-based approach to image interpretation}},
+volume = {14},
+year = {1992}
+}
+@article{chatfield2014return,
+author = {Chatfield, Ken and Simonyan, Karen and Vedaldi, Andrea and Zisserman, Andrew},
+file = {:Users/Flip/Downloads/1405.3531.pdf:pdf},
+journal = {arXiv preprint arXiv:1405.3531},
+title = {{Return of the devil in the details: Delving deep into convolutional nets}},
+year = {2014}
+}
+@article{Girshick2014,
+abstract = {Can a large convolutional neural network trained for whole-image classification on ImageNet be coaxed into detecting objects in PASCAL? We show that the answer is yes, and that the resulting system is simple, scalable, and boosts mean average precision, relative to the venerable deformable part model, by more than 40\% (achieving a final mAP of 48\% on VOC 2007). Our framework combines powerful computer vision techniques for generating bottom-up region proposals with recent advances in learning high-capacity convolutional neural networks. We call the resulting system R-CNN: Regions with CNN features. The same framework is also competitive with state-of-the-art semantic segmentation methods, demonstrating its flexibility. Beyond these results, we execute a battery of experiments that provide insight into what the network learns to represent, revealing a rich hierarchy of discriminative and often semantically meaningful features.},
+archivePrefix = {arXiv},
+arxivId = {1311.2524},
+author = {Girshick, Ross and Donahue, Jeff and Darrell, Trevor and Berkeley, U C and Malik, Jitendra},
+doi = {10.1109/CVPR.2014.81},
+eprint = {1311.2524},
+isbn = {9781479951178},
+issn = {10636919},
+journal = {Cvpr'14},
+pages = {2--9},
+title = {{Rich feature hierarchies for accurate object detection and semantic segmentation}},
+url = {http://arxiv.org/abs/1311.2524},
+year = {2014}
 }
