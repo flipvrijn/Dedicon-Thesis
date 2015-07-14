@@ -7,7 +7,7 @@ sys.path.insert(0, lib_path)
 
 from fast_rcnn.config import cfg 
 from fast_rcnn.test import im_detect
-from utils.cython_nms import nms
+#from utils.cython_nms import nms
 from utils.timer import Timer
 import matplotlib.pyplot as plt
 import numpy as np
@@ -28,47 +28,45 @@ CLASSES = ('__background__',
            'motorbike', 'person', 'pottedplant',
            'sheep', 'sofa', 'train', 'tvmonitor')
 
-def vis_detections(im, class_name, dets, thresh=0.5):
-    """Draw detected bounding boxes."""
-    embed()
-    inds = np.where(dets[:, -1] >= thresh)[0]
-    if len(inds) == 0:
-        return
+def nms(boxes, scores, thresh):
+    if len(boxes) == 0:
+        return []
 
-    im = im[:, :, (2, 1, 0)]
-    fig, ax = plt.subplots(figsize=(12, 12))
-    ax.imshow(im, aspect='equal')
-    for i in inds:
-        bbox = dets[i, :4]
-        score = dets[i, -1]
+    if boxes.dtype.kind == 'i':
+        boxes = boxes.astype('float')
 
-        ax.add_patch(
-            plt.Rectangle((bbox[0], bbox[1]),
-                          bbox[2] - bbox[0],
-                          bbox[3] - bbox[1], fill=False,
-                          edgecolor='red', linewidth=3.5)
-            )
-        ax.text(bbox[0], bbox[1] - 2,
-                '{:s} {:.3f}'.format(class_name, score),
-                bbox=dict(facecolor='blue', alpha=0.5),
-                fontsize=14, color='white')
+    pick = []
 
-    ax.set_title(('{} detections with '
-                  'p({} | box) >= {:.1f}').format(class_name, class_name,
-                                                  thresh),
-                  fontsize=14)
-    plt.axis('off')
-    plt.tight_layout()
-    plt.draw()
-    plt.show()
-    embed()
+    x1 = boxes[:, 0]
+    y1 = boxes[:, 1]
+    x2 = boxes[:, 2]
+    y2 = boxes[:, 3]
 
-def Detect(net, image_path, object_proposals):
+    area = (x2 - x1 + 1) * (y2 - y1 + 1)
+    idxs = np.argsort(y2)
+
+    while len(idxs) > 0:
+        last = len(idxs) - 1
+        i = idxs[last]
+        pick.append(i)
+
+        xx1 = np.maximum(x1[i], x1[idxs[:last]])
+        yy1 = np.maximum(y1[i], y1[idxs[:last]])
+        xx2 = np.maximum(x2[i], x2[idxs[:last]])
+        yy2 = np.maximum(y2[i], y2[idxs[:last]])
+
+        w = np.maximum(0, xx2 - xx1 + 1)
+        h = np.maximum(0, yy2 - yy1 + 1)
+
+        overlap = (w * h) / area[idxs[:last]]
+
+        idxs = np.delete(idxs, np.concatenate(([last], np.where(overlap > thresh)[0])))
+
+    return boxes[pick].astype('int'), scores[pick]
+
+
+def Detect(net, im, image_path, object_proposals, args):
     """Detect object classes in an image assuming the whole image is an object."""
-    # Load the image
-    im = cv2.imread(image_path)
-    h, w, c = im.shape
-
     # Detect all object classes and regress object bounds
     tic = time.time()
     scores, boxes = im_detect(net, im, object_proposals)
@@ -78,39 +76,84 @@ def Detect(net, image_path, object_proposals):
     # need to process each proposal
     img_blob = {}
     img_blob['img_path'] = image_path
-    img_blob['detections'] = []
+    img_blob['detections'] = {}
     img_blob['detect_time'] = detect_time 
     # sort for each row
     sort_idxs = np.argsort(-scores, axis = 1).tolist()
 
     # for each proposal
     for idx, idx_rank in enumerate(sort_idxs):
-        
-        # get top-6
+
         t_boxes = []
         preds = []
-        confs = [] 
-        idx_rank = idx_rank[:6] # a list
-        # for top-6 class
+        confs = []
+
+        # filter by threshold
         for cls_ind in idx_rank:
-            t_boxes += [ boxes[idx, 4*cls_ind:4*(cls_ind+1)].tolist() ]
-            preds += [ CLASSES[cls_ind] ]
-            confs += [ scores[idx, cls_ind].tolist() ] 
-   
-        img_blob['detections']  += [[t_boxes, preds, confs]]
+            if scores[idx, cls_ind] > args.det_thresh:
+                t_boxes.append(boxes[idx, 4*cls_ind:4*(cls_ind+1)])
+                preds.append(CLASSES[cls_ind])
+                confs.append(scores[idx, cls_ind])
+
+        for i, pred in enumerate(preds):
+            if pred in img_blob['detections']:
+                np.vstack((img_blob['detections'][pred]['boxes'], t_boxes))
+                np.vstack((img_blob['detections'][pred]['confs'], confs))
+            else:
+                img_blob['detections'][pred] = {'boxes': np.array(t_boxes, dtype=np.float), 'confs': np.array(confs, dtype=np.float)}
+
+    if args.nms:
+        print 'Applying non-maximum suppression'
+        for pred in img_blob['detections'].keys():
+            boxes = img_blob['detections'][pred]['boxes']
+            scores = img_blob['detections'][pred]['confs']
+            picked_boxes, picked_scores = nms(boxes, scores, args.nms_thresh)
+            img_blob['detections'][pred]['boxes'] = picked_boxes
+            img_blob['detections'][pred]['confs'] = picked_scores
 
     return detect_time, img_blob
 
 def read_mat(path):
     data = hdf5storage.read(path='/', filename=path)
 
-    return data[0][0][0][0]
+    #return data[0][0][0], data[0][1][0]
+    return data[0][0][0][0], None
+
+def vis_detections(im, dets, ignore_background=True, thresh=0.5):
+    """Draw detected bounding boxes."""
+    im = im[:, :, (2, 1, 0)]
+    fig, ax = plt.subplots(figsize=(12, 12))
+    ax.imshow(im, aspect='equal')
+
+    for class_name, det in dets.items():
+        boxes = det['boxes']
+        scores = det['confs']
+        for i in xrange(0, len(boxes)):
+            if class_name == '__background__' and ignore_background:
+                continue
+            ax.add_patch(
+                plt.Rectangle((boxes[i][0], boxes[i][1]),
+                              boxes[i][2] - boxes[i][0],
+                              boxes[i][3] - boxes[i][1], fill=False,
+                              edgecolor='red', linewidth=3.5)
+            )
+            ax.text(boxes[i][0], boxes[i][1] - 2,
+                    '{:s} {:.3f}'.format(class_name, scores[i]),
+                    bbox=dict(facecolor='blue', alpha=0.5),
+                    fontsize=14, color='white')
+    plt.axis('off')
+    plt.tight_layout()
+    plt.draw()
+    plt.show()
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Train a Fast R-CNN network')
-    parser.add_argument('--gpu', dest='gpu_id', help='GPU device id to use [0]', default=0, type=int)
-    parser.add_argument('--def', dest='def', help='Network definition file')
-    parser.add_argument('--net', dest='net', help='Network model file')
+    parser = argparse.ArgumentParser(description='Execute a Fast R-CNN network')
+    parser.add_argument('--gpu', dest='gpu_id', default=0, help='GPU device id')
+    #parser.add_argument('--def', dest='def', help='Network definition file')
+    #parser.add_argument('--net', dest='net', help='Network model file')
+    parser.add_argument('--nms', dest='nms', default=1, type=int, help='Enable/disable non-maximum suppression')
+    parser.add_argument('--nms_thresh', dest='nms_thresh', default=0.5, type=float, help='Non-maximum suppression threshold')
+    parser.add_argument('--det_thresh', dest='det_thresh', default=0.8, type=float, help='Object detection threshold')
 
     args = parser.parse_args()
 
@@ -121,15 +164,14 @@ if __name__ == '__main__':
     caffe.set_device(args.gpu_id)
     net = caffe.Net(prototxt, model, caffe.TEST)
 
-    #demo(net, 'input/bird.jpg', CLASSES)
-    image_name = 'input/bird.jpg'
-    box_file = os.path.join(image_name + '_boxes.mat')
-    obj_proposals = read_mat(box_file)
-    detect_time, img_blob = Detect(net, image_name, obj_proposals)
+    # Load the image
+    image_path = 'input/birds.jpg'
+    im = cv2.imread(image_path)
 
-    embed()
+    box_file = os.path.join(image_path + '_boxes.mat')
+    obj_proposals, _ = read_mat(box_file)
+    detect_time, dets = Detect(net, im, image_path, obj_proposals, args)
 
-    detect_json_filename = '_detections.json'
-    json.dump(img_blob, open(os.path.join(detect_json_filename), 'w'))
+    vis_detections(im, dets['detections'], ignore_background=True)
 
     plt.show()
