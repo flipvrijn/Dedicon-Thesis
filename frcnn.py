@@ -28,8 +28,7 @@ CLASSES = ('__background__',
            'motorbike', 'person', 'pottedplant',
            'sheep', 'sofa', 'train', 'tvmonitor')
 
-
-def Detect(net, im, image_path, object_proposals):
+def Detect(net, im, image_path, object_proposals, args):
     """Detect object classes in an image assuming the whole image is an object."""
     # Detect all object classes and regress object bounds
     tic = time.time()
@@ -43,23 +42,28 @@ def Detect(net, im, image_path, object_proposals):
     img_blob['detections'] = []
     img_blob['detect_time'] = detect_time 
     # sort for each row
-    sort_idxs = np.argsort(-scores, axis = 1).tolist()
+    row_sort_idxs = np.argsort(-scores, axis = 1)
+    # remove background regions
+    if args.ignore_background:
+        row_sort_idxs = row_sort_idxs[row_sort_idxs != 0].reshape(row_sort_idxs.shape[0], row_sort_idxs.shape[1] - 1)
+    row_idxs_scores = scores[:,0].argsort()
+    sort_idxs = row_sort_idxs[row_idxs_scores][::-1][:19]
+
+    sorted_scores = scores[row_idxs_scores]
+    sorted_boxes  = boxes[row_idxs_scores]
 
     # for each proposal
     for idx, idx_rank in enumerate(sort_idxs):
-        
-        idx_rank = idx_rank # a list
+        idx_rank = idx_rank[:2] # a list
 
-        # get top-19
         t_boxes = np.empty(len(idx_rank), dtype=np.object)
         preds = np.empty(len(idx_rank), dtype=np.object)
         confs = np.empty(len(idx_rank), dtype=np.float)
 
-        # for top-19 class
         for i, cls_ind in enumerate(idx_rank):
-            t_boxes[i] = boxes[idx, 4*cls_ind:4*(cls_ind+1)].tolist()
+            t_boxes[i] = sorted_boxes[idx, 4*cls_ind:4*(cls_ind+1)].tolist()
             preds[i]   = CLASSES[cls_ind]
-            confs[i]   = scores[idx, cls_ind]
+            confs[i]   = sorted_scores[idx, cls_ind]
    
         img_blob['detections']  += [[t_boxes, preds, confs]]
 
@@ -70,7 +74,7 @@ def read_mat(path):
 
     return data[0][0][0][0]
 
-def vis_detections(im, dets, ignore_background=True, thresh=0.5):
+def vis_detections(im, dets, args):
     """Draw detected bounding boxes."""
     im = im[:, :, (2, 1, 0)]
     fig, ax = plt.subplots(figsize=(12, 12))
@@ -78,9 +82,9 @@ def vis_detections(im, dets, ignore_background=True, thresh=0.5):
     for det in dets:
         boxes, class_names, scores = det
         for i in xrange(0, len(boxes)):
-            if class_names[i] == '__background__' and ignore_background:
+            if args.ignore_background and class_names[i] == '__background__':
                 continue
-            if scores[i] >= thresh:
+            if scores[i] >= args.det_thresh:
                 ax.add_patch(
                     plt.Rectangle((boxes[i][0], boxes[i][1]),
                                   boxes[i][2] - boxes[i][0],
@@ -91,6 +95,7 @@ def vis_detections(im, dets, ignore_background=True, thresh=0.5):
                         '{:s} {:.3f}'.format(class_names[i], scores[i]),
                         bbox=dict(facecolor='blue', alpha=0.5),
                             fontsize=14, color='white')
+    plt.title('{} most probable bounding boxes'.format(len(dets)))
     plt.axis('off')
     plt.tight_layout()
     plt.draw()
@@ -99,8 +104,10 @@ def vis_detections(im, dets, ignore_background=True, thresh=0.5):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train a Fast R-CNN network')
     parser.add_argument('--gpu', dest='gpu_id', help='GPU device id to use [0]', default=0, type=int)
-    parser.add_argument('--def', dest='def', help='Network definition file')
-    parser.add_argument('--net', dest='net', help='Network model file')
+    #parser.add_argument('--def', dest='def', help='Network definition file')
+    #parser.add_argument('--net', dest='net', help='Network model file')
+    parser.add_argument('--bg', dest='ignore_background', default=True, type=bool, help='Ignore/include background')
+    parser.add_argument('--det_thresh', dest='det_thresh', default=0.1, type=float, help='Object detection threshold')
 
     args = parser.parse_args()
 
@@ -117,9 +124,9 @@ if __name__ == '__main__':
 
     box_file = os.path.join(image_path + '_boxes.mat')
     obj_proposals = read_mat(box_file)
-    detect_time, dets = Detect(net, im, image_path, obj_proposals)
+    detect_time, dets = Detect(net, im, image_path, obj_proposals, args)
 
-    vis_detections(im, dets['detections'], ignore_background=True, thresh=0.1)
+    vis_detections(im, dets['detections'], args)
 
     detect_json_filename = '_detections.json'
     json.dump(dets, open(os.path.join(detect_json_filename), 'w'))
