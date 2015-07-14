@@ -38,7 +38,7 @@ def visualize(img, regions, args):
         plt.imshow(img)
         for v, (y0, x0, y1, x1) in regions:
             ax.add_patch(
-                patches.Rectangle((x0, y0), x1 - x0, y1 - y0, edgecolor='green', fill=False)
+                patches.Rectangle((x0, y0), x1, y1, edgecolor='green', fill=False)
             )
         plt.show()
     else:
@@ -106,10 +106,10 @@ if __name__ == '__main__':
             boxes_image = np.zeros([len(regions), 4], dtype=np.double)
             for idx_region, data in enumerate(regions):
                 _, (y0, x0, y1, x1) = data
-                boxes_image[idx_region] = [x0, y0, x1, y1]
+                boxes_image[idx_region] = [x0, y0, x0 + x1, y0 + y1]
 
             # Store the bounding boxes in the collection
-            boxes[image_idx] = boxes_image
+            boxes[image_idx] = np.array(boxes_image, dtype=np.object)
             # Store the image filename in the collection
             image_names[image_idx] = os.path.basename(image)
 
@@ -120,3 +120,4 @@ if __name__ == '__main__':
         hdf5storage.savemat(args.output_path, {'images': image_names, 'boxes': boxes}, format='7.3', oned_as='row', store_python_metadata=True)
     else:
         print 'Could not find any images in %s' %args.image_path
+
