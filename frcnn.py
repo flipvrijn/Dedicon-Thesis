@@ -15,13 +15,22 @@ import scipy.io as sio
 import caffe, cv2
 import argparse
 import hdf5storage
+import time
+import json
 
 from IPython import embed
 
-CLASSES = ('__background', 'accordion', 'airplane', 'ant', 'antelope', 'apple', 'armadillo', 'artichoke', 'axe', 'baby bed', 'backpack', 'bagel', 'balance beam', 'banana', 'band aid', 'banjo', 'baseball', 'basketball', 'bathing cap', 'beaker', 'bear', 'bee', 'bell pepper', 'bench', 'bicycle', 'binder', 'bird', 'bookshelf', 'bow', 'bow tie', 'bowl', 'brassiere', 'burrito', 'bus', 'butterfly', 'camel', 'can opener', 'car', 'cart', 'cattle', 'cello', 'centipede', 'chain saw', 'chair', 'chime', 'cocktail shaker', 'coffee maker', 'computer keyboard', 'computer mouse', 'corkscrew', 'cream', 'croquet ball', 'crutch', 'cucumber', 'cup or mug', 'diaper', 'digital clock', 'dishwasher', 'dog', 'domestic cat', 'dragonfly', 'drum', 'dumbbell', 'electric fan', 'elephant', 'face powder', 'fig', 'filing cabinet', 'flower pot', 'flute', 'fox', 'french horn', 'frog', 'frying pan', 'giant panda', 'goldfish', 'golf ball', 'golfcart', 'guacamole', 'guitar', 'hair dryer', 'hair spray', 'hamburger', 'hammer', 'hamster', 'harmonica', 'harp', 'hat with a wide brim', 'head cabbage', 'helmet', 'hippopotamus', 'horizontal bar', 'horse', 'hotdog', 'iPod', 'isopod', 'jellyfish', 'koala bear', 'ladle', 'ladybug', 'lamp', 'laptop', 'lemon', 'lion', 'lipstick', 'lizard', 'lobster', 'maillot', 'maraca', 'microphone', 'microwave', 'milk can', 'miniskirt', 'monkey', 'motorcycle', 'mushroom', 'nail', 'neck brace', 'oboe', 'orange', 'otter', 'pencil box', 'pencil sharpener', 'perfume', 'person', 'piano', 'pineapple', 'ping-pong ball', 'pitcher', 'pizza', 'plastic bag', 'plate rack', 'pomegranate', 'popsicle', 'porcupine', 'power drill', 'pretzel', 'printer', 'puck', 'punching bag', 'purse', 'rabbit', 'racket', 'ray', 'red panda', 'refrigerator', 'remote control', 'rubber eraser', 'rugby ball', 'ruler', 'salt or pepper shaker', 'saxophone', 'scorpion', 'screwdriver', 'seal', 'sheep', 'ski', 'skunk', 'snail', 'snake', 'snowmobile', 'snowplow', 'soap dispenser', 'soccer ball', 'sofa', 'spatula', 'squirrel', 'starfish', 'stethoscope', 'stove', 'strainer', 'strawberry', 'stretcher', 'sunglasses', 'swimming trunks', 'swine', 'syringe', 'table', 'tape player', 'tennis ball', 'tick', 'tie', 'tiger', 'toaster', 'traffic light', 'train', 'trombone', 'trumpet', 'turtle', 'tv or monitor', 'unicycle', 'vacuum', 'violin', 'volleyball', 'waffle iron', 'washer', 'water bottle', 'watercraft', 'whale', 'wine bottle', 'zebra')
+#CLASSES = ('person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat', 'traffic light', 'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow', 'elephant', 'bear', 'zebra', 'giraffe', 'backpack', 'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee', 'skis', 'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard', 'tennis racket', 'bottle', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple', 'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake', 'chair', 'couch', 'potted plant', 'bed', 'dining table', 'toilet', 'tv', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone', 'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock', 'vase', 'scissors', 'teddy bear', 'hair drier', 'toothbrush')
+CLASSES = ('__background__',
+           'aeroplane', 'bicycle', 'bird', 'boat',
+           'bottle', 'bus', 'car', 'cat', 'chair',
+           'cow', 'diningtable', 'dog', 'horse',
+           'motorbike', 'person', 'pottedplant',
+           'sheep', 'sofa', 'train', 'tvmonitor')
 
 def vis_detections(im, class_name, dets, thresh=0.5):
     """Draw detected bounding boxes."""
+    embed()
     inds = np.where(dets[:, -1] >= thresh)[0]
     if len(inds) == 0:
         return
@@ -51,62 +60,51 @@ def vis_detections(im, class_name, dets, thresh=0.5):
     plt.axis('off')
     plt.tight_layout()
     plt.draw()
-
-def demo(net, image_name, classes):
-    """Detect object classes in an image using pre-computed object proposals."""
-
-    # Load pre-computed Selected Search object proposals
-    box_file = os.path.join(image_name + '_boxes.mat')
-    _, obj_proposals = read_mat(box_file)
-
-    # Load the demo image
-    im = cv2.imread(image_name)
-
-    # Detect all object classes and regress object bounds
-    timer = Timer()
-    timer.tic()
-    scores, boxes = im_detect(net, im, obj_proposals)
-    timer.toc()
-    print ('Detection took {:.3f}s for '
-           '{:d} object proposals').format(timer.total_time, boxes.shape[0])
-
-    # Visualize detections for each class
-    CONF_THRESH = 0.8
-    NMS_THRESH = 0.3
-    for cls in classes:
-        cls_ind = CLASSES.index(cls)
-        cls_boxes = boxes[:, 4*cls_ind:4*(cls_ind + 1)]
-        cls_scores = scores[:, cls_ind]
-        embed()
-        dets = np.hstack((cls_boxes,
-                          cls_scores[:, np.newaxis])).astype(np.float32)
-        keep = nms(dets, NMS_THRESH)
-        dets = dets[keep, :]
-        print 'All {} detections with p({} | box) >= {:.1f}'.format(cls, cls,
-                                                                    CONF_THRESH)
-        vis_detections(im, cls, dets, thresh=CONF_THRESH)
-
-def detect(net, image_path):
-    # Load pre-computed Selected Search object proposals
-    box_file = image_path + '_boxes.mat'
-    _, obj_proposals = read_mat(box_file)
-
-    im = cv2.imread(image_path)
-
-    timer = Timer()
-    timer.tic()
-    scores, boxes = im_detect(net, im, obj_proposals)
-
+    plt.show()
     embed()
 
-    pred_classes = [CLASSES[idx] for idx in ((-scores).argsort()[:6]).tolist()]
+def Detect(net, image_path, object_proposals):
+    """Detect object classes in an image assuming the whole image is an object."""
+    # Load the image
+    im = cv2.imread(image_path)
+    h, w, c = im.shape
 
-    
+    # Detect all object classes and regress object bounds
+    tic = time.time()
+    scores, boxes = im_detect(net, im, object_proposals)
+    toc = time.time()
+    detect_time = (toc-tic)
+
+    # need to process each proposal
+    img_blob = {}
+    img_blob['img_path'] = image_path
+    img_blob['detections'] = []
+    img_blob['detect_time'] = detect_time 
+    # sort for each row
+    sort_idxs = np.argsort(-scores, axis = 1).tolist()
+
+    # for each proposal
+    for idx, idx_rank in enumerate(sort_idxs):
+        
+        # get top-6
+        t_boxes = []
+        preds = []
+        confs = [] 
+        idx_rank = idx_rank[:6] # a list
+        # for top-6 class
+        for cls_ind in idx_rank:
+            t_boxes += [ boxes[idx, 4*cls_ind:4*(cls_ind+1)].tolist() ]
+            preds += [ CLASSES[cls_ind] ]
+            confs += [ scores[idx, cls_ind].tolist() ] 
+   
+        img_blob['detections']  += [[t_boxes, preds, confs]]
+
+    return detect_time, img_blob
 
 def read_mat(path):
     data = hdf5storage.read(path='/', filename=path)
 
-    return data[0][1], data[0][0][0]
+    return data[0][0][0][0]
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train a Fast R-CNN network')
@@ -117,12 +115,21 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     prototxt = os.path.join(cfg.ROOT_DIR, 'models', 'VGG16', 'test.prototxt')
-    model    = os.path.join(cfg.ROOT_DIR, 'data', 'imagenet_models', 'VGG16.v2.caffemodel')
+    model    = os.path.join(cfg.ROOT_DIR, 'data', 'fast_rcnn_models', 'vgg16_fast_rcnn_iter_40000.caffemodel')
 
     caffe.set_mode_gpu()
     caffe.set_device(args.gpu_id)
     net = caffe.Net(prototxt, model, caffe.TEST)
 
-    detect(net, 'input/bird.jpg')
+    #demo(net, 'input/bird.jpg', CLASSES)
+    image_name = 'input/bird.jpg'
+    box_file = os.path.join(image_name + '_boxes.mat')
+    obj_proposals = read_mat(box_file)
+    detect_time, img_blob = Detect(net, image_name, obj_proposals)
+
+    embed()
+
+    detect_json_filename = '_detections.json'
+    json.dump(img_blob, open(os.path.join(detect_json_filename), 'w'))
 
     plt.show()
