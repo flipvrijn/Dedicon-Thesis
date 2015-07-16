@@ -73,26 +73,34 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--image', dest='single_image_path', type=str, default=None, help='Path to single image file.')
     parser.add_argument('-i',dest='image_path', type=str, help='Directory containing images.')
-    parser.add_argument('-o',dest='output_path', type=str, help='Path to output file.')
+    parser.add_argument('-o',dest='output_path', type=str, default=None, help='Path to output file.')
     parser.add_argument('--viz', dest='viz', type=int, default=0, help='Visualize selective search')
     parser.add_argument('--style', dest='style', type=int, default=0, help='Visualization style [0=bounding boxes, 1=segmentation]')
 
     args = parser.parse_args()
     viz = args.viz
+    images = []
     if not args.single_image_path:
-        images = glob.glob('%s/*.jpg' % args.image_path)
+        filetypes = ('*.jpg', '*.JPG', '*.jpeg', '*.JPEG')
+        for filetype in filetypes:
+            images.extend(glob.glob('%s/%s' % (args.image_path, filetype)))
     else:
         images = [args.single_image_path]
+
+    if args.single_image_path:
+        output_path = args.output_path if args.output_path else args.single_image_path + '_boxes.mat'
+    elif not args.single_image_path and not args.output_path:
+        raise RuntimeError("No output file specified!")
 
     # If images are available in input path
     if len(images):
         image_names = [None for i in xrange(len(images))] # Holds the image filenames
-        boxes       = [None for i in xrange(len(images))] # Holds the bounding boxes per image
+        boxes       = np.empty(len(images), dtype=np.object) # Holds the bounding boxes per image
 
-        bar = Bar('Searching boxes', max=len(images), suffix='%(percent)d%%')
+        bar = Bar('Searching boxes', max=len(images))#, suffix='%(percent)d%%')
         for image_idx, image in enumerate(images):
             img = skimage.io.imread(image)
-            regions = selective_search(img)
+            regions = selective_search(img, color_spaces=['hsv'], ks=[200], feature_masks=[(0,1,1,0)])
 
             # Show the visualization and ask whether to continue with visualizing
             if viz:
@@ -109,15 +117,15 @@ if __name__ == '__main__':
                 boxes_image[idx_region] = [x0, y0, x0 + x1, y0 + y1]
 
             # Store the bounding boxes in the collection
-            boxes[image_idx] = np.array(boxes_image, dtype=np.object)
+            boxes[image_idx] = boxes_image
             # Store the image filename in the collection
             image_names[image_idx] = os.path.basename(image)
 
             bar.next()
         bar.finish()
         
-        print 'Writing to file %s...' % args.output_path
-        hdf5storage.savemat(args.output_path, {'images': image_names, 'boxes': boxes}, format='7.3', oned_as='row', store_python_metadata=True)
+        print 'Writing to file %s...' % output_path
+        hdf5storage.savemat(output_path, {'images': image_names, 'boxes': boxes}, format='7.3', oned_as='row', store_python_metadata=True)
     else:
-        print 'Could not find any images in %s' %args.image_path
+        print 'Could not find any images in %s' % args.image_path
 
