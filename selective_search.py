@@ -100,7 +100,7 @@ if __name__ == '__main__':
         bar = Bar('Searching boxes', max=len(images))#, suffix='%(percent)d%%')
         for image_idx, image in enumerate(images):
             img = skimage.io.imread(image)
-            regions = selective_search(img, color_spaces=['hsv', 'lab'], ks=[50 100];, feature_masks=[(0,1,1,0)])
+            regions = selective_search(img, color_spaces=['hsv', 'lab'], ks=[50, 100], feature_masks=[(0,1,1,0)])
 
             # Show the visualization and ask whether to continue with visualizing
             if viz:
