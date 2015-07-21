@@ -100,7 +100,7 @@ if __name__ == '__main__':
         bar = Bar('Searching boxes', max=len(images))#, suffix='%(percent)d%%')
         for image_idx, image in enumerate(images):
             img = skimage.io.imread(image)
-            regions = selective_search(img, color_spaces=['hsv'], ks=[200], feature_masks=[(0,1,1,0)])
+            regions = selective_search(img, color_spaces=['hsv', 'lab'], ks=[50 100];, feature_masks=[(0,1,1,0)])
 
             # Show the visualization and ask whether to continue with visualizing
             if viz:
@@ -114,6 +114,7 @@ if __name__ == '__main__':
             boxes_image = np.zeros([len(regions), 4], dtype=np.double)
             for idx_region, data in enumerate(regions):
                 _, (y0, x0, y1, x1) = data
+                # compat: [y0, x0, y1, x1] = [y, x, height, width]
                 boxes_image[idx_region] = [x0, y0, x0 + x1, y0 + y1]
 
             # Store the bounding boxes in the collection
