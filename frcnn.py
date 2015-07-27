@@ -3,6 +3,7 @@ import sys
 
 # Set the required paths for the F-RCNN
 lib_path = os.path.join(os.path.dirname(__file__), 'networks', 'fast-rcnn', 'lib')
+cur_path = os.path.dirname(__file__)
 sys.path.insert(0, lib_path)
 
 from fast_rcnn.config import cfg 
@@ -51,10 +52,24 @@ def Detect(net, image, args):
 
     dets_boxes   = np.array(dets_boxes)
     dets_classes = np.array(dets_classes)
-    keep         = nms(dets_boxes, args.nms_thresh) # Apply non-maximum suppression
+
+    # Cap the bounding boxes to image boundary (HAX-y)
+    filtered_dets_boxes = []
+    for dets_box in dets_boxes:
+        try:
+            xmin, ymin, xmax, ymax, _ = dets_box
+            roi = image[ymin:ymax, xmin:xmax]
+            if roi.shape[0] == 0 or roi.shape[1] == 0:
+                raise ValueError('Empty image!')
+            filtered_dets_boxes.append(dets_box)
+        except:
+            pass
+    filtered_dets_boxes = np.array(filtered_dets_boxes)
+
+    keep         = nms(filtered_dets_boxes, args.nms_thresh) # Apply non-maximum suppression
 
     # Grab N 'best' locations
-    nms_boxes   = dets_boxes[keep][:args.num_regions]
+    nms_boxes   = filtered_dets_boxes[keep][:args.num_regions]
     nms_classes = dets_classes[keep][:args.num_regions]
 
     out_boxes   = np.hstack((nms_boxes, nms_classes[:, np.newaxis])).astype(np.float32, copy=False)
@@ -139,7 +154,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train a Fast R-CNN network')
     parser.add_argument('--gpu', dest='gpu_id', help='GPU device id to use', default=0, type=int)
     parser.add_argument('--bg', dest='ignore_background', default=True, type=bool, help='Ignore/include background')
-    parser.add_argument('-i', dest='img', type=str, help='Input image')
+    parser.add_argument('-i', dest='image', type=str, default=None, help='Input image')
     parser.add_argument('--nms_thresh', dest='nms_thresh', default=0.3, type=float, help='Non-maximum suppression threshold')
     parser.add_argument('-r', dest='num_regions', default=19, type=int, help='Number of best regions in image')
     parser.add_argument('--viz', dest='viz', default=False, type=bool, help='Visualize region localization')
@@ -152,7 +167,7 @@ if __name__ == '__main__':
     rcnn_model    = os.path.join(cfg.ROOT_DIR, 'output', 'default', 'coco_train2014', 'vgg_cnn_m_1024_fast_rcnn_iter_640000.caffemodel')
 
     # Convolutional neural network model for extracting 4096 feature vector from regions
-    cnn_prototxt  = os.path.join('models', 'VGG_ILSVRC_16_layers_deploy.prototxt')
+    cnn_prototxt  = os.path.join(cur_path, 'models', 'VGG_ILSVRC_16_layers_deploy.prototxt')
     cnn_model     = os.path.join(cfg.ROOT_DIR, 'data', 'imagenet_models', 'VGG16.v2.caffemodel')
 
     caffe.set_mode_gpu()
@@ -161,7 +176,9 @@ if __name__ == '__main__':
     cnn_net  = caffe.Net(cnn_prototxt, cnn_model, caffe.TEST)
 
     # Load the image
-    images = [args.img]
+    images = [args.image]
+
+    print 'Processing {}'.format(images)
 
     output = np.empty((len(images), 2), dtype=object)
 
