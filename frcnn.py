@@ -8,6 +8,7 @@ sys.path.insert(0, lib_path)
 from fast_rcnn.config import cfg 
 from fast_rcnn.test import im_detect
 from utils.cython_nms import nms
+
 import skimage.io
 import matplotlib.pyplot as plt
 import numpy as np
@@ -17,6 +18,7 @@ import hdf5storage
 import time
 import json
 import pandas as pd
+import hdf5storage
 
 from IPython import embed
 
@@ -121,29 +123,17 @@ def get_rois(boxes, image):
 
     return rois, rois_cls, rois_score
 
-def extract_cnn_features(net, rois, full):
+def extract_cnn_features(net, img):
     transformer = caffe.io.Transformer({'data': net.blobs['data'].data.shape})
     transformer.set_transpose('data', (2, 0, 1))
     transformer.set_raw_scale('data', 255)
     transformer.set_channel_swap('data', (2, 1, 0))
 
-    feats = np.empty((len(rois) + 1, 4096))
-
     # Extract features from RoIs ...
-    for roi_idx, roi in enumerate(rois):
-        net.blobs['data'].reshape(1, 3, 224, 224)
-        net.blobs['data'].data[...] = transformer.preprocess('data', roi)
-        out = net.forward()
-        feats[roi_idx] = out['fc7']
-
-    # ... and from the whole image
-    full = skimage.io.imread(full)
     net.blobs['data'].reshape(1, 3, 224, 224)
-    net.blobs['data'].data[...] = transformer.preprocess('data', full)
+    net.blobs['data'].data[...] = transformer.preprocess('data', img)
     out = net.forward()
-    feats[-1] = out['fc7']
-
-    return feats
+    return out['fc7']
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train a Fast R-CNN network')
@@ -157,9 +147,11 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
+    # Regional convolutional neural network model for picking the 'best' regions
     rcnn_prototxt = os.path.join(cfg.ROOT_DIR, 'models', 'VGG_CNN_M_1024', 'test-coco.prototxt')
     rcnn_model    = os.path.join(cfg.ROOT_DIR, 'output', 'default', 'coco_train2014', 'vgg_cnn_m_1024_fast_rcnn_iter_640000.caffemodel')
 
+    # Convolutional neural network model for extracting 4096 feature vector from regions
     cnn_prototxt  = os.path.join('models', 'VGG_ILSVRC_16_layers_deploy.prototxt')
     cnn_model     = os.path.join(cfg.ROOT_DIR, 'data', 'imagenet_models', 'VGG16.v2.caffemodel')
 
@@ -171,27 +163,32 @@ if __name__ == '__main__':
     # Load the image
     images = [args.img]
 
-    output = np.empty(len(images), dtype=object)
+    output = np.empty((len(images), 2), dtype=object)
 
     for image_idx, image in enumerate(images):
-        print '[1/{}]: Putting {} into the R-CNN...'.format(len(images), image)
-
         # Detect the best locations in the image
+        print '[1/{}]: Putting {} into the R-CNN...'.format(len(images), image)
         boxes = Detect(rcnn_net, image, args)
 
-        print '[1/{}]: Extracting regions of interest...'.format(len(images))
-
         # Extract regions of interest
+        print '[1/{}]: Extracting regions of interest...'.format(len(images))
         rois, rois_cls, rois_score = get_rois(boxes, image)
 
-        print '[1/{}]: Grabbing features from regions of interest...'.format(len(images))
-
         # Grab features from locations
-        output[image_idx] = extract_cnn_features(cnn_net, rois, image)
+        print '[1/{}]: Grabbing features from regions of interest...'.format(len(images))
+        
+        rois_full = np.resize(rois, (rois.shape[0] + 1,))
+        rois_full[-1] = skimage.io.imread(image)
+
+        v = np.empty((args.num_regions + 1, 4096))
+        for roi_idx, roi in enumerate(rois_full):
+            v[roi_idx] = extract_cnn_features(cnn_net, roi)
+        output[image_idx][0] = v
+        output[image_idx][1] = rois_full
 
         if args.viz:
             # Visualize the detections
             vis_detections(boxes, image, [rois, rois_cls, rois_score], args)
 
-    print 'Writing to file %s...' % args.output
+    print 'Writing to {}...'.format(args.output)
     hdf5storage.savemat(args.output, {'feats': output}, format='7.3', oned_as='row', store_python_metadata=True)
