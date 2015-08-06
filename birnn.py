@@ -48,6 +48,7 @@ class Vocab(object):
             self.dataset.append(data)
 
     def sequenceLength(self):
+        embed()
         return len(self.dataset[0][0])
 
     def iterSentences(self, dataset, split = 'train'):
@@ -197,6 +198,8 @@ if __name__ == '__main__':
         reps[idx] = f(sentence).transpose((1, 2, 0))
         bar.next()
     bar.finish()
+
+    embed()
 
     print 'Saving data to file %s...' % args.out_file
     np.save(args.out_file, reps)

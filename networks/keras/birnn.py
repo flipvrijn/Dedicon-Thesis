@@ -25,7 +25,7 @@ class Transform(Layer):
          super(Transform, self).__init__()
          self.dims = dims
          if input is not None:
-             self.input = input
+             self.input = inputs
 
      def get_output(self, train):
          X = self.get_input(train)
@@ -41,6 +41,156 @@ class Transform(Layer):
      def get_config(self):
          return {"name":self.__class__.__name__,
              "dims":self.dims}
+
+class BiDirection(Layer):
+    '''
+        Acts as a spatiotemporal projection,
+
+        Eats inputs with shape:
+        (nb_samples, max_sample_length (samples shorter than this are padded with zeros at the end), input_dim)
+
+        and returns outputs with shape:
+        (nb_samples, max_sample_length, output_dim)
+
+        For a step-by-step description of the algorithm, see:
+        http://deeplearning.net/tutorial/lstm.html
+
+        References:
+            Long short-term memory (original 97 paper)
+                http://deeplearning.cs.cmu.edu/pdfs/Hochreiter97_lstm.pdf
+            Learning to forget: Continual prediction with LSTM
+                http://www.mitpressjournals.org/doi/pdf/10.1162/089976600300015015
+            Supervised sequence labelling with recurrent neural networks
+                http://www.cs.toronto.edu/~graves/preprint.pdf
+    '''
+    def __init__(self, input_dim, output_dim=128,
+        init='glorot_uniform', inner_init='orthogonal',
+        activation='tanh', inner_activation='hard_sigmoid',
+        weights=None, truncate_gradient=-1, output_mode='sum'):
+
+        super(BiDirection,self).__init__()
+        self.input_dim = input_dim
+        self.output_dim = output_dim
+        self.hidden_dim = self.output_dim // 2
+        self.truncate_gradient = truncate_gradient
+        self.output_mode = output_mode # output_mode is either sum or concatenate
+
+        self.init = initializations.get(init)
+        self.inner_init = initializations.get(inner_init)
+        self.activation = activations.get(activation)
+        self.inner_activation = activations.get(inner_activation)
+        self.input = T.tensor3()
+
+        # forward weights
+        self.Wf_i = self.init((self.input_dim, self.hidden_dim))
+        self.bf_i = shared_zeros((self.hidden_dim))
+
+        self.Wh_f = self.init((self.hidden_dim, self.hidden_dim))
+        self.bh_f = shared_zeros((self.hidden_dim))
+
+        self.Wf_o = self.init((self.hidden_dim, self.output_dim))
+        self.bf_o = shared_zeros((self.output_dim))
+
+        # backward weights
+        self.Wb_i = self.init((self.input_dim, self.hidden_dim))
+        self.bb_i = shared_zeros((self.hidden_dim))
+
+        self.Wh_f = self.init((self.hidden_dim, self.hidden_dim))
+        self.bh_f = shared_zeros((self.hidden_dim))
+
+        self.Wb_o = self.init((self.hidden_dim, self.output_dim))
+        self.bb_o = shared_zeros((self.output_dim))
+
+        self.params = [
+            self.Wf_i, self.bf_i,
+            self.Wh_f, self.bh_f,
+
+            self.Wb_i, self.bb_i,
+            self.Wb_f, self.bb_f,
+
+            self.Wf_o, self.bf_o,
+            self.Wb_o, self.bb_o,
+        ]
+
+        if weights is not None:
+            self.set_weights(weights)
+
+    def _forward_step(self,
+        xi_t,
+        h_tm1, c_tm1,
+        wh_f):
+        i_t = self.inner_activation(xi_t + T.dot(h_tm1, u_i))
+        f_t = self.inner_activation(xf_t + T.dot(h_tm1, u_f))
+        o_t = self.inner_activation(xo_t + T.dot(h_tm1, u_o))
+        g_t = self.activation(xc_t + T.dot(h_tm1, u_c))
+        c_t = f_t * c_tm1 + i_t * g_t
+        h_t = o_t * self.activation(c_t)
+        return h_t, c_t
+
+    def get_forward_output(self, train):
+        X = self.get_input(train)
+        X = X.dimshuffle((1,0,2))
+
+        xi = T.dot(X, self.Wf_i) + self.bf_i
+
+        [outputs, memories], updates = theano.scan(
+            self._forward_step,
+            sequences=[xi],
+            outputs_info=[
+                T.unbroadcast(alloc_zeros_matrix(X.shape[1], self.output_dim), 1),
+                T.unbroadcast(alloc_zeros_matrix(X.shape[1], self.output_dim), 1)
+            ],
+            non_sequences=[self.Wh_f],
+            truncate_gradient=self.truncate_gradient
+        )
+        return outputs.dimshuffle((1,0,2))
+
+
+    def get_backward_output(self, train):
+        X = self.get_input(train)
+        X = X.dimshuffle((1,0,2))
+
+        xi = T.dot(X, self.Wb_i) + self.bb_i
+        xf = T.dot(X, self.Wb_f) + self.bb_f
+        xc = T.dot(X, self.Wb_c) + self.bb_c
+        xo = T.dot(X, self.Wb_o) + self.bb_o
+
+        [outputs, memories], updates = theano.scan(
+            self._forward_step,
+            sequences=[xi, xf, xo, xc],
+            outputs_info=[
+                T.unbroadcast(alloc_zeros_matrix(X.shape[1], self.output_dim), 1),
+                T.unbroadcast(alloc_zeros_matrix(X.shape[1], self.output_dim), 1)
+            ],
+            non_sequences=[self.Ub_i, self.Ub_f, self.Ub_o, self.Ub_c],
+            go_backwards = True,
+            truncate_gradient=self.truncate_gradient
+        )
+        return outputs.dimshuffle((1,0,2))
+
+
+    def get_output(self, train):
+        forward = self.get_forward_output(train)
+        backward = self.get_backward_output(train)
+        if self.output_mode is 'sum':
+            return forward + backward
+        elif self.output_mode is 'concat':
+            return T.concatenate([forward, backward], axis=2)
+        else:
+            raise Exception('output mode is not sum or concat')
+
+
+    def get_config(self):
+        return {"name":self.__class__.__name__,
+            "input_dim":self.input_dim,
+            "output_dim":self.output_dim,
+            "init":self.init.__name__,
+            "inner_init":self.inner_init.__name__,
+            "activation":self.activation.__name__,
+            "inner_activation":self.inner_activation.__name__,
+            "truncate_gradient":self.truncate_gradient}
+
+
 
 class BiDirectionLSTM(Layer):
     '''

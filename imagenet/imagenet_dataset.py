@@ -6,7 +6,6 @@ import time
 import glob
 import os
 import csv
-from progress.bar import Bar
     
 from lxml import etree
 

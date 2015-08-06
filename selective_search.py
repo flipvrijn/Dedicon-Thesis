@@ -38,7 +38,7 @@ def visualize(img, regions, args):
         plt.imshow(img)
         for v, (y0, x0, y1, x1) in regions:
             ax.add_patch(
-                patches.Rectangle((x0, y0), x1, y1, edgecolor='green', fill=False)
+                patches.Rectangle((x0, y0), x1 - x0, y1 - y0, edgecolor='green', fill=False)
             )
         plt.show()
     else:
@@ -72,12 +72,13 @@ if __name__ == '__main__':
     """
     parser = argparse.ArgumentParser()
     parser.add_argument('--image', dest='single_image_path', type=str, default=None, help='Path to single image file.')
-    parser.add_argument('-i',dest='image_path', type=str, help='Directory containing images.')
+    parser.add_argument('-i',dest='image_path', type=str, default=None, help='Directory containing images.')
     parser.add_argument('-o',dest='output_path', type=str, default=None, help='Path to output file.')
     parser.add_argument('--viz', dest='viz', type=int, default=0, help='Visualize selective search')
     parser.add_argument('--style', dest='style', type=int, default=0, help='Visualization style [0=bounding boxes, 1=segmentation]')
 
     args = parser.parse_args()
+    print args
     viz = args.viz
     images = []
     if not args.single_image_path:
@@ -100,29 +101,33 @@ if __name__ == '__main__':
         bar = Bar('Searching boxes', max=len(images))#, suffix='%(percent)d%%')
         for image_idx, image in enumerate(images):
             img = skimage.io.imread(image)
-            regions = selective_search(img, color_spaces=['hsv', 'lab'], ks=[50, 100], feature_masks=[(0,1,1,0)])
+            try:
+                regions = selective_search(img, color_spaces=['rgb', 'nrgb', 'hue'], ks=[100, 200], feature_masks=[(0,1,1,0)])
 
-            # Show the visualization and ask whether to continue with visualizing
-            if viz:
-                visualize(img, regions, args)
-                sys.stdout.write('Keep visualizing? [y/n]: ')
-                choice = raw_input().lower()
-                if choice != 'y':
-                    viz = False
+                # Show the visualization and ask whether to continue with visualizing
+                if viz:
+                    visualize(img, regions, args)
+                    sys.stdout.write('Keep visualizing? [y/n]: ')
+                    choice = raw_input().lower()
+                    if choice != 'y':
+                        viz = False
 
-            # Put all regions of the image in a collection
-            boxes_image = np.zeros([len(regions), 4], dtype=np.double)
-            for idx_region, data in enumerate(regions):
-                _, (y0, x0, y1, x1) = data
-                # compat: [y0, x0, y1, x1] = [y, x, height, width]
-                boxes_image[idx_region] = [x0, y0, x0 + x1, y0 + y1]
+                # Put all regions of the image in a collection
+                boxes_image = np.zeros([len(regions), 4], dtype=np.double)
+                for idx_region, data in enumerate(regions):
+                    _, (y0, x0, y1, x1) = data
+                    # compat: [y0, x0, y1, x1] = [y, x, height, width]
+                    boxes_image[idx_region] = [x0, y0, x1, y1]
 
-            # Store the bounding boxes in the collection
-            boxes[image_idx] = boxes_image
-            # Store the image filename in the collection
-            image_names[image_idx] = os.path.basename(image)
+                # Store the bounding boxes in the collection
+                boxes[image_idx] = boxes_image
+                # Store the image filename in the collection
+                image_names[image_idx] = os.path.basename(image)
 
-            bar.next()
+                bar.next()
+            except:
+                print '{} failed to process...'.format(image)
+                pass
         bar.finish()
         
         print 'Writing to file %s...' % output_path
