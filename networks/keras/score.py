@@ -33,9 +33,10 @@ class Score(object):
         # max scores for each word in the sentence
         words   = self.layers[1].get_output(train).dimshuffle(0, 2, 1) # (t, nb_samples, embed_dim) -> (t, embed_dim, nb_samples)
         regions = T.shape_padleft(self.layers[0].get_output(train), 1) \
-            .repeat(T.shape(words)[0], 0)                            # (nb_samples, embed_dim) -> (t, nb_samples, embed_dim)
+            .repeat(T.shape(words)[0], 0)                              # (nb_samples, embed_dim) -> (t, nb_samples, embed_dim)
 
-        return T.max_and_argmax(T.batched_dot(regions, words), axis=1)
+        #viz: return T.max_and_argmax(T.batched_dot(regions, words), axis=1)
+        return T.sum(T.max(T.batched_dot(regions, words), axis=1)), T.sum(T.max(T.batched_dot(regions, words), axis=0))
 
     def get_input(self, train=False):
         res = []

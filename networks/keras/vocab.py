@@ -3,6 +3,10 @@ from utils import *
 from itertools import izip, chain
 from collections import Counter
 import json
+import cPickle
+import os
+import hashlib
+from keras.preprocessing.sequence import pad_sequences
 
 from IPython import embed
 
@@ -20,17 +24,73 @@ class Vocab(object):
     start_token   = "<<START>>"
     end_token     = "<<END>>"
 
-    def __init__(self, infile, eol_tokens=None, min_count=5):
+    def __init__(self, infiles, reduce_words=True, caching=True, min_count=5):
         '''
-            Create KV embed from a tokenized (space-separated) file of sentences.
+            Create KV embed from a tokenized (space-separated) file(s) of sentences.
         '''
-        with open(infile) as f:
-            data = json.load(open(infile, 'r'))
+        if type(infiles) is str:
+            infiles = [infiles] # in case it is a single file
 
-        word_counts = {}
-        self.sentences = []
-        self.images = []
-        self.img_to_sent = {}
+        cache_file = '{}.pkl'.format(hashlib.md5(''.join(infiles)).hexdigest())
+        self.sents_file = '{}.txt'.format(os.path.join('/media', 'Data', 'flipvanrijn', 'datasets', 'text', hashlib.md5(''.join(infiles)).hexdigest()))
+
+        if caching and os.path.exists(cache_file):
+            with open(cache_file, 'rb') as fid:
+                self.sentences, self.images, self.img_to_sent, \
+                self.word_count, self.special_token_count, self.token_count, \
+                self.word_to_int, self.int_to_word, self.start, \
+                self.end, self.start_1h, self.end_1h = cPickle.load(fid)
+        else:
+            self.word_counts = {}
+            self.sentences = []
+            self.images = []
+            self.img_to_sent = {}
+            for infile in infiles:
+                print 'Processing {}...'.format(infile)
+
+                with open(infile) as f:
+                    if 'json' in infile:
+                        self.load_json(f)
+                    else:
+                        self.load_txt(f)
+
+            if reduce_words:
+                words = [w for w in self.word_counts if self.word_counts[w] >= min_count]
+            else:
+                words = [w for w in self.word_counts]
+            print 'Reduced words from {} to {} with threshold {}'.format(len(self.word_counts), len(words), min_count)
+            alltokens = [self.invalid_token, self.start_token, self.end_token] + words
+
+            self.word_count = len(words)
+            self.special_token_count = len(alltokens) - len(words)
+            self.token_count = len(alltokens)
+
+            self.word_to_int = {word: i for i, word in enumerate(alltokens)}
+            self.int_to_word = {i: word for i, word in enumerate(alltokens)}
+
+            self.start = self.word_to_int[self.start_token]
+            self.end = self.word_to_int[self.end_token]
+            self.start_1h = one_hot(self.token_count, self.start)
+            self.end_1h = one_hot(self.token_count, self.start)
+
+            if caching:
+                with open(cache_file, 'wb') as fid:
+                    cPickle.dump([self.sentences, self.images, self.img_to_sent, \
+                                self.word_count, self.special_token_count, self.token_count, \
+                                self.word_to_int, self.int_to_word, self.start, \
+                                self.end, self.start_1h, self.end_1h], fid, cPickle.HIGHEST_PROTOCOL)
+
+    def load_txt(self, f):
+        for line in f:
+            tokens = line.split(' ')
+            #self.sentences.append([token.lower() for token in tokens])
+            for token in tokens:
+                word = token.lower()
+                self.word_counts[word] = self.word_counts.get(word, 0) + 1
+
+    def load_json(self, f):
+        data = json.load(f);
+
         for image in data['images']:
             self.images.append(image['filename'])
             for sentence in image['sentences']:
@@ -42,25 +102,7 @@ class Vocab(object):
                     self.img_to_sent[img_idx] = [sent_idx]
                 for word in sentence['tokens']:
                     word = word.lower()
-                    word_counts[word] = word_counts.get(word, 0) + 1
-
-        words = [w for w in word_counts if word_counts[w] >= min_count]
-        print 'Reduced words from {} to {} with threshold {}'.format(len(word_counts), len(words), min_count)
-        alltokens = [self.invalid_token, self.start_token, self.end_token] + words
-
-        self.word_count = len(words)
-        self.special_token_count = len(alltokens) - len(words)
-        self.token_count = len(alltokens)
-
-        self.word_to_int = {word: i for i, word in enumerate(alltokens)}
-        self.int_to_word = {i: word for i, word in enumerate(alltokens)}
-
-        self.start = self.word_to_int[self.start_token]
-        self.end = self.word_to_int[self.end_token]
-        self.start_1h = one_hot(self.token_count, self.start)
-        self.end_1h = one_hot(self.token_count, self.start)
-        
-        self.cached_matrix = {}
+                    self.word_counts[word] = self.word_counts.get(word, 0) + 1
 
     def get(self, token):
         '''
@@ -117,6 +159,13 @@ class Vocab(object):
         if clip:
             tokens = self.clip(tokens)
         return tokens
+
+    def get_matrix(self):
+        mat = []
+        for sent in self.sentences:
+            mat.append(self.sentence_to_ids(sent))
+        mat = pad_sequences(mat);
+        return mat;
 
     def matchN(self, vector, n):
         '''

@@ -6,31 +6,31 @@ from IPython import embed
 
 class BatchGenerator(object):
 
-    def __init__(self, vocab):
+    def __init__(self, vocab, batch_size):
         self.vocab = vocab
+        self.batch_size = batch_size
+        self.total_batches = 0
+        self.current_batch = 0
 
-    def get_data(self, mode='index', batch_size=128, maxlen=30):
-        valid_modes = ['original', 'index', 'binary']
-        if mode not in valid_modes:
-            raise ValueError('Unknown mode: {}. Valid modes are: {}').format(mode, ' '.join(valid_modes))   
+    def get_data(self, maxlen=30):
+        sentences = self.vocab.sentences
+        np.random.shuffle(sentences)
 
-        for batch_index in xrange(0, len(self.vocab.sentences), batch_size):
-            mat = None
-            if mode == 'original':
-                mat = []
-                for sentence in self.vocab.sentences[batch_index:batch_index + batch_size]:
-                    mat.append(sentence)
-            if mode == 'index':
-                mat = []
-                for sentence in self.vocab.sentences[batch_index:batch_index + batch_size]:
-                    mat.append(self.vocab.sentence_to_ids(sentence))
-                mat = pad_sequences(mat, maxlen=maxlen, padding='post', truncating='post')
-            elif mode == 'binary':
-                mat = []
-                for sentence in self.vocab.sentences[batch_index:batch_index + batch_size]:
-                    mat.append(self.vocab.sentence_to_1h(sentence))
-                mat = self.pad_1h_sequences(mat, maxlen=maxlen, padding='post', truncating='post')
-            yield mat
+        batch_indices = xrange(0, len(sentences), self.batch_size)
+        self.total_batches = len(batch_indices)
+
+        for batch_number, batch_index in enumerate(batch_indices):
+            self.current_batch = batch_number
+            Xs = []
+            Ys = []
+
+            for sentence in sentences[batch_index:batch_index + self.batch_size]:
+                Xs.append(self.vocab.sentence_to_1h(sentence))
+                Ys.append(self.vocab.sentence_to_ids(sentence))
+
+            Xs = self.pad_1h_sequences(Xs, maxlen=maxlen, padding='post', truncating='post')
+            Ys = pad_sequences(Ys, maxlen=maxlen, padding='post', truncating='post')
+            yield (Xs, Ys)
 
     def pad_1h_sequences(self, sequences, maxlen=None, dtype='bool', padding='pre', truncating='pre', value=0.):
         """
