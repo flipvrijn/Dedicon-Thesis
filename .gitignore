@@ -17,4 +17,5 @@ __pycache__/
 *.log
 
 datasets/
+notebooks/.ipynb_checkpoints/
 *.caffemodel
