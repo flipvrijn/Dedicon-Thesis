@@ -37,6 +37,7 @@ def Detect(net, image, args):
     scores, boxes = im_detect(net, image, proposals)
 
     predictions_df = pd.DataFrame(scores, columns=CLASSES)
+
     del predictions_df['__background__'] # Ignore background scores
     max_scores = predictions_df.max(1) # Grab maximum scores over all regions
     max_scores.sort(ascending=False) # ... sort descending
@@ -165,8 +166,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # Regional convolutional neural network model for picking the 'best' regions
-    rcnn_prototxt = os.path.join(cfg.ROOT_DIR, 'models', 'VGG_CNN_M_1024', 'test-coco.prototxt')
-    rcnn_model    = os.path.join(cfg.ROOT_DIR, 'output', 'default', 'coco_train2014', 'vgg_cnn_m_1024_fast_rcnn_iter_640000.caffemodel')
+    rcnn_prototxt = os.path.join(cfg.ROOT_DIR, 'models', 'VGG_CNN_M_1024', 'test-imagenet.prototxt')
+    rcnn_model    = os.path.join(cfg.ROOT_DIR, 'output', 'default', 'imagenet_train2014', 'vgg_cnn_m_1024_fast_rcnn_imagenet_iter_640000.caffemodel')
 
     # Convolutional neural network model for extracting 4096 feature vector from regions
     cnn_prototxt  = os.path.join(cur_path, 'models', 'VGG_ILSVRC_16_layers_deploy.prototxt')

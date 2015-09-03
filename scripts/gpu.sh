@@ -6,4 +6,4 @@
 # works only on Nvidia cards
 #
 
-watch -n nvidia-smi
+watch -n 1 nvidia-smi
