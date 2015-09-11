@@ -16,10 +16,11 @@ import numpy as np
 import caffe
 import argparse
 import hdf5storage
+import h5py
 import time
 import json
 import pandas as pd
-import hdf5storage
+from progress.bar import Bar
 
 from IPython import embed
 
@@ -28,12 +29,8 @@ from IPython import embed
 # Imagenet: 201 classes
 CLASSES = ('__background__', 'accordion', 'airplane', 'ant', 'antelope', 'apple', 'armadillo', 'artichoke', 'axe', 'baby bed', 'backpack', 'bagel', 'balance beam', 'banana', 'band aid', 'banjo', 'baseball', 'basketball', 'bathing cap', 'beaker', 'bear', 'bee', 'bell pepper', 'bench', 'bicycle', 'binder', 'bird', 'bookshelf', 'bow tie', 'bow', 'bowl', 'brassiere', 'burrito', 'bus', 'butterfly', 'camel', 'can opener', 'car', 'cart', 'cattle', 'cello', 'centipede', 'chain saw', 'chair', 'chime', 'cocktail shaker', 'coffee maker', 'computer keyboard', 'computer mouse', 'corkscrew', 'cream', 'croquet ball', 'crutch', 'cucumber', 'cup or mug', 'diaper', 'digital clock', 'dishwasher', 'dog', 'domestic cat', 'dragonfly', 'drum', 'dumbbell', 'electric fan', 'elephant', 'face powder', 'fig', 'filing cabinet', 'flower pot', 'flute', 'fox', 'french horn', 'frog', 'frying pan', 'giant panda', 'goldfish', 'golf ball', 'golfcart', 'guacamole', 'guitar', 'hair dryer', 'hair spray', 'hamburger', 'hammer', 'hamster', 'harmonica', 'harp', 'hat with a wide brim', 'head cabbage', 'helmet', 'hippopotamus', 'horizontal bar', 'horse', 'hotdog', 'iPod', 'isopod', 'jellyfish', 'koala bear', 'ladle', 'ladybug', 'lamp', 'laptop', 'lemon', 'lion', 'lipstick', 'lizard', 'lobster', 'maillot', 'maraca', 'microphone', 'microwave', 'milk can', 'miniskirt', 'monkey', 'motorcycle', 'mushroom', 'nail', 'neck brace', 'oboe', 'orange', 'otter', 'pencil box', 'pencil sharpener', 'perfume', 'person', 'piano', 'pineapple', 'ping-pong ball', 'pitcher', 'pizza', 'plastic bag', 'plate rack', 'pomegranate', 'popsicle', 'porcupine', 'power drill', 'pretzel', 'printer', 'puck', 'punching bag', 'purse', 'rabbit', 'racket', 'ray', 'red panda', 'refrigerator', 'remote control', 'rubber eraser', 'rugby ball', 'ruler', 'salt or pepper shaker', 'saxophone', 'scorpion', 'screwdriver', 'seal', 'sheep', 'ski', 'skunk', 'snail', 'snake', 'snowmobile', 'snowplow', 'soap dispenser', 'soccer ball', 'sofa', 'spatula', 'squirrel', 'starfish', 'stethoscope', 'stove', 'strainer', 'strawberry', 'stretcher', 'sunglasses', 'swimming trunks', 'swine', 'syringe', 'table', 'tape player', 'tennis ball', 'tick', 'tie', 'tiger', 'toaster', 'traffic light', 'train', 'trombone', 'trumpet', 'turtle', 'tv or monitor', 'unicycle', 'vacuum', 'violin', 'volleyball', 'waffle iron', 'washer', 'water bottle', 'watercraft', 'whale', 'wine bottle', 'zebra')
 
-def Detect(net, image, args):
+def Detect(net, image, proposals, args):
     """ Detect object classes in an image assuming the whole image is an object. """
-    proposals   = read_mat('{}_boxes.mat'.format(image))
-    image = skimage.io.imread(image)
-
-    print 'Detecting objects based on {} proposals...'.format(len(proposals))
     scores, boxes = im_detect(net, image, proposals)
 
     predictions_df = pd.DataFrame(scores, columns=CLASSES)
@@ -78,16 +75,9 @@ def Detect(net, image, args):
     out_boxes   = np.hstack((nms_boxes, nms_classes[:, np.newaxis])).astype(np.float32, copy=False)
 
     return out_boxes
-    
-def read_mat(path):
-    """ Read HDF5 .mat file format. """
-    data = hdf5storage.read(path='/', filename=path)
 
-    return data[0][0][0]
-
-def vis_detections(boxes, image, rois, args):
+def vis_detections(boxes, im, rois, transformer, args):
     """ Draw detected bounding boxes. """
-    im = skimage.io.imread(image)
     fig, ax = plt.subplots(figsize=(12, 12))
     ax.imshow(im, aspect='equal')
 
@@ -118,48 +108,44 @@ def vis_detections(boxes, image, rois, args):
     fig_r.subplots_adjust(hspace=0.3, wspace=0.05)
 
     for ax, roi, cls, score in zip(axes_r.flat, rois[0], rois[1], rois[2]):
+        roi = transformer.deprocess('data', roi)
         ax.imshow(roi, interpolation='nearest', aspect='equal')
         ax.set_title('{} ({:.3f})'.format(CLASSES[int(cls)], score))
 
     plt.show()
 
-def get_rois(boxes, image):
+def get_rois(boxes, image, transformer, args):
     """ Extracts regions of interest from image based on bounding boxes. """
 
-    rois        = np.empty(len(boxes), dtype=object)
-    rois_cls    = np.empty(len(boxes), dtype=int)
-    rois_score  = np.empty(len(boxes), dtype=np.float32)
-
-    im = skimage.io.imread(image)
+    rois        = np.empty((args.num_regions, 3, 224, 224), dtype=np.float32)
+    rois_cls    = np.empty(args.num_regions, dtype=int)
+    rois_score  = np.empty(args.num_regions, dtype=np.float32)
 
     for box_idx, box in enumerate(boxes):
         xmin, ymin, xmax, ymax, score, cls = box
 
-        rois[box_idx]       = im[ymin:ymax, xmin:xmax]
+        rois[box_idx]       = transformer.preprocess('data', 
+            skimage.transform.resize(image[ymin:ymax, xmin:xmax], (224, 224)).astype(np.float32)
+        )
         rois_cls[box_idx]   = cls
         rois_score[box_idx] = score
 
+    rois[-1] = transformer.preprocess('data',
+        skimage.transform.resize(image, (224, 224)).astype(np.float32)
+    )
+    rois_cls[-1] = -1
+    rois_score[-1] = None
+
     return rois, rois_cls, rois_score
-
-def extract_cnn_features(net, img):
-    transformer = caffe.io.Transformer({'data': net.blobs['data'].data.shape})
-    transformer.set_transpose('data', (2, 0, 1))
-    transformer.set_raw_scale('data', 255)
-    transformer.set_channel_swap('data', (2, 1, 0))
-
-    # Extract features from RoIs ...
-    net.blobs['data'].reshape(1, 3, 224, 224)
-    net.blobs['data'].data[...] = transformer.preprocess('data', img)
-    out = net.forward()
-    return out['fc7']
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train a Fast R-CNN network')
     parser.add_argument('--gpu', dest='gpu_id', help='GPU device id to use', default=0, type=int)
     parser.add_argument('--bg', dest='ignore_background', default=True, type=bool, help='Ignore/include background')
-    parser.add_argument('-i', dest='image', type=str, default=None, help='Input image')
+    parser.add_argument('-i', dest='image_dir', type=str, default=None, help='Input image directory')
+    parser.add_argument('--bb', dest='bounding_boxes', type=str, default=None, help='Input bounding boxes file')
     parser.add_argument('--nms_thresh', dest='nms_thresh', default=0.3, type=float, help='Non-maximum suppression threshold')
-    parser.add_argument('-r', dest='num_regions', default=19, type=int, help='Number of best regions in image')
+    parser.add_argument('-r', dest='num_regions', default=20, type=int, help='Number of best regions in image')
     parser.add_argument('--viz', dest='viz', default=False, type=bool, help='Visualize region localization')
     parser.add_argument('-o', dest='output', type=str, help='Output file')
 
@@ -175,48 +161,111 @@ if __name__ == '__main__':
 
     caffe.set_mode_gpu()
     caffe.set_device(args.gpu_id)
+
     rcnn_net = caffe.Net(rcnn_prototxt, rcnn_model, caffe.TEST)
+
     cnn_net  = caffe.Net(cnn_prototxt, cnn_model, caffe.TEST)
+    cnn_net.blobs['data'].reshape(args.num_regions, 3, 224, 224)
+    transformer = caffe.io.Transformer({'data': cnn_net.blobs['data'].data.shape})
+    transformer.set_transpose('data', (2, 0, 1))
+    transformer.set_raw_scale('data', 255)
+    transformer.set_channel_swap('data', (2, 1, 0))
 
-    # Load the image
-    images = [args.image]
+    # Load the image(s)
+    if not os.path.isdir(args.image_dir):
+        raise RuntimeError("The input '{}' needs to be a directory containing images".format(args.image_dir))
+    else:
+        if not args.bounding_boxes:
+            raise RuntimeError("When processing a directory of images, a bounding boxes file is required as well")
+        f_boxes = h5py.File(args.bounding_boxes, 'r')
+        bounding_boxes, images = f_boxes['boxes'], f_boxes['images']
 
-    print 'Processing {}'.format(images)
+    print 'Processing {} images'.format(len(images))
 
     output = np.empty((len(images), 4), dtype=object)
 
-    for image_idx, image in enumerate(images):
-        # Detect the best locations in the image
-        print '[1/{}]: Putting {} into the R-CNN...'.format(len(images), image)
-        boxes = Detect(rcnn_net, image, args)
+    # Loading / creating features file
+    start_idx = 0
+    bar = Bar('Extracting boxes', max=len(images))#, suffix='%(percent)d%%')
+    if os.path.isfile(args.output):
+        print 'File already exists, continuing...'
+        # File already exists, continuing
+        f_out = h5py.File(args.output, 'r+')
+        dblobs = f_out['blobs']
+        drois  = f_out['rois']
+        dcls   = f_out['classes']
+        dscore = f_out['scores']
 
-        # Extract regions of interest
-        print '[1/{}]: Extracting regions of interest...'.format(len(images))
-        rois, rois_cls, rois_score = get_rois(boxes, image)
+        zeros_blob  = np.zeros((args.num_regions, 4096), dtype=np.float32)
+        zeros_roi   = np.zeros((args.num_regions, 3, 224, 224), dtype=np.float32)
+        zeros_cls   = np.zeros((args.num_regions,), dtype=np.uint16)
+        zeros_score = np.zeros((args.num_regions,), dtype=np.float16) 
+        for idx in xrange(f_out['blobs'].shape[0]):
+            if np.array_equal(f_out['blobs'][idx], zeros_blob):
+                start_idx = idx
+                break;
+            else:
+                bar.next()
 
-        # Grab features from locations
-        print '[1/{}]: Grabbing features from regions of interest...'.format(len(images))
-        
-        rois_full = np.resize(rois, (rois.shape[0] + 1,))
-        rois_full[-1] = skimage.io.imread(image)
+        print '\nContinuing with image {}...'.format(start_idx)
+    else:
+        # Start new file
+        f_out  = h5py.File(args.output, 'w')
+        dblobs = f_out.create_dataset('blobs', (len(images), args.num_regions, 4096), dtype=np.float32)
+        drois  = f_out.create_dataset('rois', (len(images), args.num_regions, 3, 224, 224), dtype=np.float32)
+        dcls   = f_out.create_dataset('classes', (len(images), args.num_regions,), dtype=np.uint16)
+        dscore = f_out.create_dataset('scores', (len(images), args.num_regions,), dtype=np.float16)
 
-        rois_cls_full = np.resize(rois_cls, (rois_cls.shape[0] + 1,))
-        rois_cls_full[-1] = -1
+        print 'Starting with the first image...'
 
-        rois_score_full = np.resize(rois_score, (rois_score.shape[0] + 1,))
-        rois_score_full[-1] = None
+    images = images[start_idx:]
 
-        v = np.empty((args.num_regions + 1, 4096))
-        for roi_idx, roi in enumerate(rois_full):
-            v[roi_idx] = extract_cnn_features(cnn_net, roi)
-        output[image_idx][0] = v
-        output[image_idx][1] = rois_full
-        output[image_idx][2] = rois_cls_full
-        output[image_idx][3] = rois_score_full
+    t_begin = time.time()
+    for image_idx, image_ref in enumerate(images):
+        try:
+            image_idx = image_idx + start_idx # In case we are continuing
 
-        if args.viz:
-            # Visualize the detections
-            vis_detections(boxes, image, [rois, rois_cls, rois_score], args)
+            image_name = '{}/{}'.format(args.image_dir, ''.join(chr(c) for c in f_boxes[image_ref[0]]))
+            image = skimage.io.imread(image_name)
 
-    print 'Writing to {}...'.format(args.output)
-    hdf5storage.savemat(args.output, {'feats': output}, format='7.3', oned_as='row', store_python_metadata=True)
+            if image.ndim != 3:
+                image = np.tile(image, (3,1,1))
+                image = np.transpose(image, (1,2, 0))
+
+            generated_boxes = f_boxes[bounding_boxes[image_idx][0]].value
+            generated_boxes = np.swapaxes(generated_boxes, 0, 1)
+
+            # Detect the best locations in the image
+            probable_boxes = Detect(rcnn_net, image, generated_boxes, args)
+
+            # Extract regions of interest
+            rois, rois_cls, rois_score = get_rois(probable_boxes, image, transformer, args)
+
+            # Extract features from RoIs ...
+            cnn_net.blobs['data'].data[...] = rois
+            out = cnn_net.forward()
+            dblobs[image_idx] = out['fc7']
+            drois[image_idx]  = rois
+            dcls[image_idx]   = rois_cls
+            dscore[image_idx] = rois_score
+
+            if args.viz:
+                # Visualize the detections
+                vis_detections(probable_boxes, image, [rois, rois_cls, rois_score], transformer, args)
+
+            if image_idx % 100 == 0 and image_idx != 0:
+                print '\n{}/{} processed in {}s...'.format(image_idx, len(images), time.time() - t_begin)
+                t_begin = time.time()
+
+            bar.next()
+        except ValueError:
+            blob = np.empty((args.num_regions, 4096), dtype=np.float32)
+            blob.fill(-1)
+            dblobs[image_idx] = blob
+            print 'Failed to read image {} ({})'.format(image_name, image_idx)
+        except:
+            embed()
+            raise
+
+    bar.finish()
+    f_out.close()
