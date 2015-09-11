@@ -1,21 +1,27 @@
 import theano.tensor as T
 import theano
 
+from keras.layers.core import Layer
+
 from IPython import embed
 
-class Score(object):
+class Score(Layer):
     def __init__(self, layers):
         ''' Calculate the image/sentence score of the two layers.
         '''
+        super(Score, self).__init__()
         if len(layers) < 2:
             raise Exception("Please specify two or more input layers (or containers) to merge")
+
         self.layers = layers
         self.params = []
         self.regularizers = []
         self.constraints = []
+        self.updates = []
         for l in self.layers:
-            params, regs, consts = l.get_params()
+            params, regs, consts, updates = l.get_params()
             self.regularizers += regs
+            self.updates += updates
             # params and constraints have the same size
             for p, c in zip(params, consts):
                 if p not in self.params:
@@ -23,20 +29,21 @@ class Score(object):
                     self.constraints.append(c)
 
     def get_params(self):
-        return self.params, self.regularizers, self.constraints
+        return self.params, self.regularizers, self.constraints, self.updates
 
     def get_output(self, train=False):
         if len(self.layers) != 2:
             raise Exception('Score can only be calculated with two layers')
 
         # Shuffling and reshaping inputs to easily compile the
-        # max scores for each word in the sentence
+        # max scores for each word in the sentence 
         words   = self.layers[1].get_output(train).dimshuffle(0, 2, 1) # (t, nb_samples, embed_dim) -> (t, embed_dim, nb_samples)
         regions = T.shape_padleft(self.layers[0].get_output(train), 1) \
-            .repeat(T.shape(words)[0], 0)                              # (nb_samples, embed_dim) -> (t, nb_samples, embed_dim)
+                   .repeat(T.shape(words)[0], 0)                       # (nb_samples, embed_dim) -> (t, nb_samples, embed_dim)
 
         #viz: return T.max_and_argmax(T.batched_dot(regions, words), axis=1)
-        return T.sum(T.max(T.batched_dot(regions, words), axis=1)), T.sum(T.max(T.batched_dot(regions, words), axis=0))
+        #return T.sum(T.max(T.batched_dot(regions, words), axis=1)), T.sum(T.max(T.batched_dot(regions, words), axis=0))
+        return T.max(T.batched_dot(regions, words), axis=1)
 
     def get_input(self, train=False):
         res = []
