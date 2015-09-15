@@ -70,11 +70,13 @@ def Detect(net, image, proposals, args):
 
     # Grab N 'best' locations
     nms_boxes   = filtered_dets_boxes[keep][:args.num_regions]
-    nms_classes = dets_classes[keep][:args.num_regions]
 
-    out_boxes   = np.hstack((nms_boxes, nms_classes[:, np.newaxis])).astype(np.float32, copy=False)
+    # HAX-y: When there are < args.num_regions regions, pick randomly to fill all args.num_regions spots
+    if nms_boxes.shape[0] < args.num_regions:
+        rand_idxs = np.random.choice(filtered_dets_boxes.shape[0], args.num_regions - nms_boxes.shape[0])
+        nms_boxes = np.vstack((nms_boxes, filtered_dets_boxes[rand_idxs]))
 
-    return out_boxes
+    return nms_boxes
 
 def vis_detections(boxes, im, rois, transformer, args):
     """ Draw detected bounding boxes. """
@@ -87,7 +89,7 @@ def vis_detections(boxes, im, rois, transformer, args):
 
     # Visualize the best regions
     for box in boxes:
-        xmin, ymin, xmax, ymax, score, cls = box
+        xmin, ymin, xmax, ymax, score = box
         
         ax.add_patch(
             plt.Rectangle((xmin, ymin),
@@ -117,26 +119,22 @@ def vis_detections(boxes, im, rois, transformer, args):
 def get_rois(boxes, image, transformer, args):
     """ Extracts regions of interest from image based on bounding boxes. """
 
-    rois        = np.empty((args.num_regions, 3, 224, 224), dtype=np.float32)
-    rois_cls    = np.empty(args.num_regions, dtype=int)
+    rois        = np.empty((args.num_regions + 1, 3, 224, 224), dtype=np.float32)
     rois_score  = np.empty(args.num_regions, dtype=np.float32)
 
     for box_idx, box in enumerate(boxes):
-        xmin, ymin, xmax, ymax, score, cls = box
+        xmin, ymin, xmax, ymax, score = box
 
         rois[box_idx]       = transformer.preprocess('data', 
             skimage.transform.resize(image[ymin:ymax, xmin:xmax], (224, 224)).astype(np.float32)
         )
-        rois_cls[box_idx]   = cls
         rois_score[box_idx] = score
 
     rois[-1] = transformer.preprocess('data',
         skimage.transform.resize(image, (224, 224)).astype(np.float32)
     )
-    rois_cls[-1] = -1
-    rois_score[-1] = None
 
-    return rois, rois_cls, rois_score
+    return rois, rois_score
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train a Fast R-CNN network')
@@ -145,7 +143,7 @@ if __name__ == '__main__':
     parser.add_argument('-i', dest='image_dir', type=str, default=None, help='Input image directory')
     parser.add_argument('--bb', dest='bounding_boxes', type=str, default=None, help='Input bounding boxes file')
     parser.add_argument('--nms_thresh', dest='nms_thresh', default=0.3, type=float, help='Non-maximum suppression threshold')
-    parser.add_argument('-r', dest='num_regions', default=20, type=int, help='Number of best regions in image')
+    parser.add_argument('-r', dest='num_regions', default=19, type=int, help='Number of best regions in image')
     parser.add_argument('--viz', dest='viz', default=False, type=bool, help='Visualize region localization')
     parser.add_argument('-o', dest='output', type=str, help='Output file')
 
@@ -165,7 +163,7 @@ if __name__ == '__main__':
     rcnn_net = caffe.Net(rcnn_prototxt, rcnn_model, caffe.TEST)
 
     cnn_net  = caffe.Net(cnn_prototxt, cnn_model, caffe.TEST)
-    cnn_net.blobs['data'].reshape(args.num_regions, 3, 224, 224)
+    cnn_net.blobs['data'].reshape(args.num_regions + 1, 3, 224, 224)
     transformer = caffe.io.Transformer({'data': cnn_net.blobs['data'].data.shape})
     transformer.set_transpose('data', (2, 0, 1))
     transformer.set_raw_scale('data', 255)
@@ -190,16 +188,13 @@ if __name__ == '__main__':
     if os.path.isfile(args.output):
         print 'File already exists, continuing...'
         # File already exists, continuing
-        f_out = h5py.File(args.output, 'r+')
-        dblobs = f_out['blobs']
-        drois  = f_out['rois']
-        dcls   = f_out['classes']
-        dscore = f_out['scores']
+        f_out   = h5py.File(args.output, 'r+')
+        dblobs  = f_out['blobs']
+        drois   = f_out['rois']
+        dscores = f_out['scores']
+        dnames  = f_out['names'] 
 
-        zeros_blob  = np.zeros((args.num_regions, 4096), dtype=np.float32)
-        zeros_roi   = np.zeros((args.num_regions, 3, 224, 224), dtype=np.float32)
-        zeros_cls   = np.zeros((args.num_regions,), dtype=np.uint16)
-        zeros_score = np.zeros((args.num_regions,), dtype=np.float16) 
+        zeros_blob  = np.zeros((args.num_regions + 1, 4096), dtype=np.float32)
         for idx in xrange(f_out['blobs'].shape[0]):
             if np.array_equal(f_out['blobs'][idx], zeros_blob):
                 start_idx = idx
@@ -210,11 +205,11 @@ if __name__ == '__main__':
         print '\nContinuing with image {}...'.format(start_idx)
     else:
         # Start new file
-        f_out  = h5py.File(args.output, 'w')
-        dblobs = f_out.create_dataset('blobs', (len(images), args.num_regions, 4096), dtype=np.float32)
-        drois  = f_out.create_dataset('rois', (len(images), args.num_regions, 3, 224, 224), dtype=np.float32)
-        dcls   = f_out.create_dataset('classes', (len(images), args.num_regions,), dtype=np.uint16)
-        dscore = f_out.create_dataset('scores', (len(images), args.num_regions,), dtype=np.float16)
+        f_out   = h5py.File(args.output, 'w')
+        dblobs  = f_out.create_dataset('blobs', (len(images), args.num_regions + 1, 4096), dtype=np.float32)
+        drois   = f_out.create_dataset('rois', (len(images), args.num_regions, 4), dtype=np.float32)
+        dscores = f_out.create_dataset('scores', (len(images), args.num_regions,), dtype=np.float16)
+        dnames  = f_out.create_dataset('names', (len(images),), dtype=h5py.special_dtype(vlen=bytes))
 
         print 'Starting with the first image...'
 
@@ -239,19 +234,19 @@ if __name__ == '__main__':
             probable_boxes = Detect(rcnn_net, image, generated_boxes, args)
 
             # Extract regions of interest
-            rois, rois_cls, rois_score = get_rois(probable_boxes, image, transformer, args)
+            rois, rois_score = get_rois(probable_boxes, image, transformer, args)
 
             # Extract features from RoIs ...
             cnn_net.blobs['data'].data[...] = rois
             out = cnn_net.forward()
-            dblobs[image_idx] = out['fc7']
-            drois[image_idx]  = rois
-            dcls[image_idx]   = rois_cls
-            dscore[image_idx] = rois_score
+            dblobs[image_idx]  = out['fc7']
+            drois[image_idx]   = probable_boxes[:, 0:4]
+            dscores[image_idx] = rois_score
+            dnames[image_idx]  = image_name
 
             if args.viz:
                 # Visualize the detections
-                vis_detections(probable_boxes, image, [rois, rois_cls, rois_score], transformer, args)
+                vis_detections(probable_boxes, image, [rois, rois_score], transformer, args)
 
             if image_idx % 100 == 0 and image_idx != 0:
                 print '\n{}/{} processed in {}s...'.format(image_idx, len(images), time.time() - t_begin)
@@ -259,7 +254,7 @@ if __name__ == '__main__':
 
             bar.next()
         except ValueError:
-            blob = np.empty((args.num_regions, 4096), dtype=np.float32)
+            blob = np.empty((args.num_regions + 1, 4096), dtype=np.float32)
             blob.fill(-1)
             dblobs[image_idx] = blob
             print 'Failed to read image {} ({})'.format(image_name, image_idx)
