@@ -1,23 +1,20 @@
 import theano
 import theano.tensor as T
 
-def dummy_loss(X, scores):
-    return theano.shared(10)#X[0].shape[0] + X[1].shape[0]
-
 def rank_loss(X, scores):
     def loss_loop(k, num_imgs, scores):
         inner_loop_idxs = T.neq(T.arange(scores.shape[0]), k).nonzero()[0]
         inner_loop_idxs.name = 'inner_loop_idxs'
     
         results_imgs, _ = theano.scan(
-            fn=lambda l, scores: T.maximum(0, scores[k,l,0] - scores[k,k,0] + 1),
+            fn=lambda l, scores: T.maximum(0, scores[k,l] - scores[k,k] + 1),
             sequences=[inner_loop_idxs],
             non_sequences=[scores]
         )
         results_sents, _ = theano.scan(
-            fn=lambda l, scores: T.maximum(0, scores[k,l,1] - scores[k,k,1] + 1),
+            fn=lambda l, scores: T.maximum(0, scores[k,l] - scores[k,k] + 1),
             sequences=[inner_loop_idxs],
-            non_sequences=[scores]
+            non_sequences=[scores.T]
         )
         results_imgs = T.sum(results_imgs)
         results_sents = T.sum(results_sents)

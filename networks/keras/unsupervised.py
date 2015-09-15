@@ -1,5 +1,7 @@
 import theano
 
+import theano.tensor as T
+
 from keras.utils.theano_utils import shared_zeros, floatX
 from keras.models import Model, standardize_X
 from keras.layers import containers
@@ -11,7 +13,7 @@ class Unsupervised(Model, containers.Sequential):
     Single layer unsupervised learning Model.
     """
     # compile theano graph, adapted from keras.models.Sequential
-    def compile(self, optimizer, loss, batch_size, theano_mode=None):
+    def compile(self, optimizer, loss, theano_mode=None):
         self.optimizer = optimizers.get(optimizer)
 
         self.loss = objectives.get(loss)
@@ -23,8 +25,7 @@ class Unsupervised(Model, containers.Sequential):
         self.y_train = self.get_output(train=True)
         self.y_test = self.get_output(train=False)
 
-        self.scores = shared_zeros((batch_size, batch_size, 2))
-        self.scores.name = 'scores'
+        self.scores = T.matrix('scores')
 
         train_loss = self.loss(self.y_train, self.scores)
         test_loss = self.loss(self.y_test, self.scores)
@@ -45,6 +46,9 @@ class Unsupervised(Model, containers.Sequential):
         else:
             train_ins = [self.X_train]
             test_ins  = [self.X_test]
+
+        train_ins += [self.scores]
+        test_ins  += [self.scores]
 
         self._train = theano.function(train_ins, train_loss, updates=updates,
                                       allow_input_downcast=True, mode=theano_mode)
@@ -68,5 +72,4 @@ class Unsupervised(Model, containers.Sequential):
         metrics = ['loss', 'acc', 'val_loss', 'val_acc']
         return self._fit(f, ins, out_labels=out_labels, batch_size=batch_size, nb_epoch=nb_epoch,
                          verbose=verbose, callbacks=callbacks,
-                         val_f=val_f, val_ins=val_ins,
-                         shuffle=shuffle, metrics=metrics)
+                         shuffle=False, metrics=metrics)
