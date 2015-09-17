@@ -1,5 +1,6 @@
 import theano.tensor as T
 import theano
+import numpy as np
 
 from keras.layers.core import Layer
 
@@ -34,16 +35,16 @@ class Score(Layer):
     def get_output(self, train=False):
         if len(self.layers) != 2:
             raise Exception('Score can only be calculated with two layers')
-
         # Shuffling and reshaping inputs to easily compile the
         # max scores for each word in the sentence 
-        words   = self.layers[1].get_output(train).dimshuffle(0, 2, 1) # (t, nb_samples, embed_dim) -> (t, embed_dim, nb_samples)
-        regions = T.shape_padleft(self.layers[0].get_output(train), 1) \
-                   .repeat(T.shape(words)[0], 0)                       # (nb_samples, embed_dim) -> (t, nb_samples, embed_dim)
-
+        in0     = self.layers[0].get_output(train)
+        in1     = self.layers[1].get_output(train)
+        words   = in1.dimshuffle(0, 2, 1)                                   # (nb_samples, t, embed_dim) -> (nb_samples, embed_dim, t)
+        regions = T.reshape(in0, (in0.shape[0] // 20, 20, in0.shape[1]), 3) # (nb_samples, embed_dim)    -> (nb_samples, nb_regions, embed_dim)
+        return T.max(T.batched_dot(regions, words), axis=1, keepdims=True)
+        
         #viz: return T.max_and_argmax(T.batched_dot(regions, words), axis=1)
         #return T.sum(T.max(T.batched_dot(regions, words), axis=1)), T.sum(T.max(T.batched_dot(regions, words), axis=0))
-        return T.max(T.batched_dot(regions, words), axis=1)
 
     def get_input(self, train=False):
         res = []
