@@ -41,19 +41,23 @@ class Unsupervised(Model, containers.Sequential):
         updates += self.updates
 
         if type(self.X_train) == list:
-            train_ins = self.X_train
-            test_ins  = self.X_test
+            train_ins   = self.X_train
+            test_ins    = self.X_test
+            predict_ins = self.X_test 
         else:
-            train_ins = [self.X_train]
-            test_ins  = [self.X_test]
+            train_ins   = [self.X_train]
+            test_ins    = [self.X_test]
+            predict_ins = [self.X_test]
 
         train_ins += [self.scores]
         test_ins  += [self.scores]
 
-        self._train = theano.function(train_ins, train_loss, updates=updates,
-                                      allow_input_downcast=True, mode=theano_mode)
-        self._test = theano.function(test_ins, test_loss,
+        self._train     = theano.function(train_ins, train_loss, updates=updates,
                                      allow_input_downcast=True, mode=theano_mode)
+        self._test      = theano.function(test_ins, test_loss,
+                                     allow_input_downcast=True, mode=theano_mode)
+        self._predict  = theano.function(predict_ins, self.y_test,
+                                     allow_input_downcast=True, mode=theano_mode, on_unused_input='ignore')
 
     # train data, adapted from keras.layers.containers.Sequential
     def fit(self, X, scores, batch_size=128, nb_epoch=100, verbose=1, callbacks=[],
