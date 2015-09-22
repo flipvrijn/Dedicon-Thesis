@@ -25,8 +25,10 @@ from IPython import embed
 
 class Aligner(object):
     """Sentence image aligner"""
-    def __init__(self):
+    def __init__(self, batch_size):
         super(Aligner, self).__init__()
+        self.batch_size = batch_size
+        
         self.img_model = Sequential()
         self.img_model.add(Dense(4096, 1000, init='uniform'))
 
@@ -34,44 +36,11 @@ class Aligner(object):
         self.sent_model.add(Bidirectional(SimpleRNN, 8856, 1000, return_sequences=True, activation='relu'))
 
         self.combined_model = Unsupervised()
-        self.combined_model.add(Score([self.img_model, self.sent_model]))
+        self.combined_model.add(Score([self.img_model, self.sent_model], self.batch_size))
 
-    def _score_function(self, batch_size):
-        in0     = T.matrix('regions')
-        in1     = T.tensor3('words')
-        location = T.imatrix('location')
-        regions = T.reshape(in0, (in0.shape[0] // 20, 20, in0.shape[1]), 3)
-        words   = in1.dimshuffle(0, 2, 1)
-        scores  = theano.shared(np.zeros((batch_size, batch_size), dtype=np.float32))
-
-        def _calc_scores(location, regions, words):
-            x = location[0]
-            y = location[1]
-            score = T.sum(T.max(T.dot(regions[x], words[y]), axis=0))
-            out = T.set_subtensor(scores[x, y], score)
-            return (out, {scores: out})
-
-        scores, updates = theano.scan(fn=_calc_scores, 
-                                      outputs_info=None,
-                                      sequences=[location],
-                                      non_sequences=[regions, words])
-
-        scores = scores[-1] # Only interested in the last step, when all scores are calculated
-
-        return theano.function([in0, in1, location], scores, updates=updates)
-
-    def compile(self, optimizer='sgd', loss=rank_loss, batch_size=100):
-        print 'Compiling image model...'
-        self.image_model = theano.function([self.img_model.get_input()], self.img_model.get_output())
-
-        print 'Compiling sentence model...'
-        self.sentence_model = theano.function([self.sent_model.get_input()], self.sent_model.get_output())
-
+    def compile(self, optimizer='sgd', loss=rank_loss):
         print 'Compiling combined model...'
         self.combined_model.compile(optimizer=optimizer, loss=loss)
-
-        print 'Compiling score function...'
-        self.score_function = self._score_function(batch_size)
 
         print 'Done compiling!'
 
@@ -90,17 +59,14 @@ if __name__ == '__main__':
     print args
 
     # Initialize aligner
-    aligner = Aligner()
-    aligner.compile(batch_size=args.batch_size, optimizer=SGD(lr=0.0001, momentum=0.9), loss=dummy_loss)
+    aligner = Aligner(batch_size=args.batch_size)
+    aligner.compile(optimizer=SGD(lr=0.0001, momentum=0.9))
 
     # Load data
     image_data = h5py.File(args.image_in, 'r')
     sentence_data = h5py.File(args.sentence_in, 'r')
     num_samples = 100#image_data['blobs'].shape[0]
     reading_batch_size = 4 * args.batch_size
-
-    # Produce a list of all combinations (batch_size x batch_size)
-    combinations_indexes = np.asarray(list(product(xrange(args.batch_size), xrange(args.batch_size))), dtype=np.int32)
 
     timings = []
 
@@ -123,17 +89,11 @@ if __name__ == '__main__':
                 d_images    = img_blobs[j : j + args.batch_size]
                 d_sentences = sentence_data['sentences/token_1hs'][j : j + args.batch_size]
                 d_sentences = d_sentences[:, 0, :, :]
-                #d_sentences = np.ones((d_images.shape[0], 59, 8856), dtype=np.float32) # DUMMY VALUES!
                 d_images    = np.reshape(d_images, (d_images.shape[0] * d_images.shape[1], d_images.shape[2]))
-
-                # Calculate scores
-                d_images_out    = aligner.image_model(d_images)
-                d_sentences_out = aligner.sentence_model(d_sentences)
-                scores          = aligner.score_function(d_images_out, d_sentences_out, combinations_indexes)
 
                 # Fit image_data
                 #results = aligner.combined_model.fit([[d_images], [d_sentences]], [scores])
-                loss = aligner.combined_model.train_on_batch([d_images, d_sentences], scores)
+                loss = aligner.combined_model.train_on_batch([d_images, d_sentences])
                 timing = time.clock() - t_begin
                 print ' [Loss: {}, in {}s]'.format(loss, timing)
                 if len(timings) < 10:
