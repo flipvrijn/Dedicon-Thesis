@@ -19,3 +19,6 @@ __pycache__/
 datasets/
 notebooks/.ipynb_checkpoints/
 *.caffemodel
+
+*.txt~
+*.prototxt~
