@@ -7,7 +7,7 @@ from keras.layers.core import Layer
 from IPython import embed
 
 class Score(Layer):
-    def __init__(self, layers):
+    def __init__(self, layers, size):
         ''' Calculate the image/sentence score of the two layers.
         '''
         super(Score, self).__init__()
@@ -19,6 +19,7 @@ class Score(Layer):
         self.regularizers = []
         self.constraints = []
         self.updates = []
+        self.size = size
         for l in self.layers:
             params, regs, consts, updates = l.get_params()
             self.regularizers += regs
@@ -37,11 +38,22 @@ class Score(Layer):
             raise Exception('Score can only be calculated with two layers')
         # Shuffling and reshaping inputs to easily compile the
         # max scores for each word in the sentence 
-        in0     = self.layers[0].get_output(train)
-        in1     = self.layers[1].get_output(train)
-        words   = in1.dimshuffle(0, 2, 1)                                   # (nb_samples, t, embed_dim) -> (nb_samples, embed_dim, t)
-        regions = T.reshape(in0, (in0.shape[0] // 20, 20, in0.shape[1]), 3) # (nb_samples, embed_dim)    -> (nb_samples, nb_regions, embed_dim)
-        return T.max(T.batched_dot(regions, words), axis=1, keepdims=True)
+        in0      = self.layers[0].get_output(train)
+        in1      = self.layers[1].get_output(train)
+        regions  = T.reshape(in0, (in0.shape[0] // 20, 20, in0.shape[1]), 3) # (nb_samples, embed_dim)    -> (nb_samples, nb_regions, embed_dim)
+        words    = in1.dimshuffle(0, 2, 1)                                   # (nb_samples, t, embed_dim) -> (nb_samples, embed_dim, t)
+        scores_size = in0.shape[0] // 20
+
+        def o(x, regions, words):
+            def i(y, x, regions, words):
+                return T.sum(T.max(T.dot(regions[x], words[y]), axis=0))
+
+            r, u =  theano.scan(fn=i, sequences=[T.arange(scores_size)], non_sequences=[x, regions, words])
+            return r
+
+        r, u = theano.scan(fn=o, sequences=[T.arange(scores_size)], non_sequences=[regions, words]) 
+        return r
+        #T.max(T.batched_dot(regions, words), axis=1, keepdims=True)
         
         #viz: return T.max_and_argmax(T.batched_dot(regions, words), axis=1)
         #return T.sum(T.max(T.batched_dot(regions, words), axis=1)), T.sum(T.max(T.batched_dot(regions, words), axis=0))
