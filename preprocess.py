@@ -115,9 +115,9 @@ def main():
 
     ## final feature map
     print 'Loading train features...'
-    features_sp_train = load_sparse_csr(base_path+'features_hidden5_4_conv.npz')
+    features_sp_train = load_sparse_csr(base_path+'features_train_conv5_4.npz')
     print 'Loading validation features...'
-    features_sp_val = load_sparse_csr(base_path+'features_hidden5_4_conv_val.npz')
+    features_sp_val = load_sparse_csr(base_path+'features_val_conv5_4.npz')
     features_sp = vstack((features_sp_train, features_sp_val), format='csr')
     
     def _build_data(flist):
