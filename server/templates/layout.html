@@ -47,8 +47,11 @@
             <div class="row">
                 <div class="col-sm-3 col-md-2 sidebar">
                     <ul class="nav nav-sidebar">
-                        <li class="active"><a href="#">Overzicht</a></li>
-                        <li><a href="/options">Opties</a></li>
+                        {% for item in nav.top %}
+                        <li class="{{ 'active' if item.is_active else ''}}">
+                            <a href="{{ item.url }}">{{ item.label }}</a>
+                        </li>
+                        {% endfor %}
                     </ul>
                 </div>
 
@@ -61,6 +64,7 @@
         <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
         <script src="{{ url_for('static', filename='jquery.min.js') }}"></script>
         <!-- Include all compiled plugins (below), or include individual files as needed -->
-	<script src="{{ url_for('static', filename='bootstrap.min.js') }}"></script>
+        <script src="{{ url_for('static', filename='bootstrap.min.js') }}"></script>
+        <script src="{{ url_for('static', filename='scripts.js') }}"></script>
     </body>
 </html>
