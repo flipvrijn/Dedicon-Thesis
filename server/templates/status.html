@@ -1,0 +1,48 @@
+{% extends 'layout.html' %}
+{% block body %}
+	<h1>Overzicht status</h1>
+	<p>Een lijst met alle statussen van de modellen die op dit moment aan het trainen zijn.</p>
+	{% if not files %}
+	<p class="text-info">Op dit moment zijn er geen status bestanden.</p>
+	{% else %}
+	<table class="table" id="models-table">
+		<tr>
+			<th>Naam</th>
+			<th>Status</th>
+			<th>Epoch</th>
+			<th>Kost</th>
+			<th>Sample</th>
+			<th>Vroegtijdig gestopt</th>
+		</tr>
+		{% for filename, data in files.items() %}
+		<tr class="{{ data['class'] }}">
+			<td>{{ filename }}</td>
+			<td>
+				{{ data['status_text'] }}
+				{% if data['status'] == 12 %}
+				({{ data['error_message'] }})
+				{% endif %}
+			</td>
+			{% if data['status'] > 5 %}
+				<td>{{ data['epoch'] }}</td>
+				<td><span class="sparkline">{{ data['costs'] }}</span></td>
+				<td>
+					<dl>
+					{% for sample, truth in data['samples'] %}
+						<dt>Referentie: '{{ truth }}'</dt>
+						<dd>Gegenereerd: '{{ sample }}'</dd>
+					{% endfor %}
+					</dl>
+				</td>
+				<td>{{ 'ja' if data['early_stop'] else 'nee' }}</td>
+			{% else %}
+				<td></td>
+				<td></td>
+				<td></td>
+				<td></td>
+			{% endif %}
+		</tr>
+		{% endfor %}
+	</table>
+	{% endif %}
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends 'layout.html' %}
+{% block body %}
+	<h1>Test model</h1>
+	{% if not name %}
+	<p>Op dit moment loopt er geen model. Klik <a href="/">hier</a> om er een te starten.</p>
+	{% else %}
+	<p>Op dit moment loopt het model <strong>{{ name }}</strong>.</p>
+	<p>Het is mogelijk om in te zien hoe het model 'kijkt': </p>
+	<label>
+		<input type="checkbox" id="introspect"> Zelfreflectie aanzetten		
+	</label>
+
+	<div class="row">
+		<div class="col-md-6">
+			<h4>1. Willekeurig plaatje</h4>
+			<p>Klik op onderstaande knop en er wordt een willekeurig plaatje geselecteerd uit de dataset waarvan vervolgens een omschrijving genereerd wordt.</p>
+			<a class="btn" href="#" id="random-image-btn">
+				Selecteer <img src="{{ url_for('static', filename='loader.gif') }}" style="display: none;" id="random-image-processing">
+			</a>
+		</div>
+		<div class="col-md-6">
+			<h4>2. Upload eigen plaatje</h4>
+			<p>Upload een eigen plaatje en laat daarvan een omschrijving genereren door het model.</p>
+
+			<form action="/image/upload" class="dropzone" id="image-dropzone">
+				<div class="fallback">
+					<input type="file" name="file" />
+				</div>
+			</form>
+		</div>
+	</div>
+
+	<div id="image-wrapper" class="row" style="display: none;">
+		<div class="col-sm-6 col-md-4 col-md-offset-3">
+			<div id="error-message" style="display: none;">
+				<p class="text-danger"></p>
+			</div>
+			<div class="thumbnail text-center">
+				<img src="" id="resulting-image">
+				<img src="" id="resulting-alpha-image" style="display: none;">
+				<div class="caption">
+					<p id="caption"></p>
+				</div>
+			</div>
+		</div>
+	</div>
+	{% endif %}	
+{% endblock %}

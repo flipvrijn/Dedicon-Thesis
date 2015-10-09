@@ -1,0 +1,39 @@
+{% extends 'layout.html' %}
+{% block body %}
+	<h1>Overzicht modellen</h1>
+	<p>Een lijst met alle gebouwde modellen en hun instellingen. Verder is het mogelijk om een model te starten/stoppen.</p>
+	<table class="table" id="models-table">
+		<tr>
+			<th>Naam</th>
+			<th>Type</th>
+			<th>Laatst bewerkt</th>
+			<th>Actie</th>
+			<th>Status</th>
+		</tr>
+		{% for model in models %}
+		<tr>
+			<td>
+				<a href="#" class="show-options">{{ model['name'] }}</a>
+				<div class="options-wrapper">
+					<dl class="dl-horizontal">
+						{% for name, value in model['options'].items() %}
+							<dt>{{ name }}</dt>
+							<dd>{{ value }}</dd>
+						{% endfor %}
+					</dl>
+				</div>
+			</td>
+			<td>{{ model['options']['attn_type'] }}</td>
+			<td>{{ model['modified'] }}</td>
+			<td>
+				<a href="#" class="toggle-model" data-action="{{ 'start' if not model['status'] else 'stop' }}" data-name="{{ model['name'] }}">
+					{{ 'Start' if not model['status'] else 'Stop' }}
+				</a>
+			</td>
+			<td>
+				<span class="model-status" data-name="{{ model['name'] }}"><img src="{{ url_for('static', filename='loader.gif') }}"></span>
+			</td>
+		</tr>
+		{% endfor %}
+	</table>
+{% endblock %}
