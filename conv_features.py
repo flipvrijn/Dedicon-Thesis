@@ -12,8 +12,12 @@ import skimage.io
 
 from PIL import Image
 
+import matplotlib.pyplot as plt
+
 from IPython import embed
 
+# From author Kelvin Xu:
+# https://github.com/kelvinxu/arctic-captions/blob/master/alpha_visualization.ipynb
 def load_image(filename, cnn_mean, resize=256, crop=224):
     image = Image.open(filename)
     width, height = image.size
@@ -30,11 +34,11 @@ def load_image(filename, cnn_mean, resize=256, crop=224):
     data = np.array(image_resized.convert('RGB').getdata()).reshape(crop, crop, 3)
 
     data = data.transpose((2, 0, 1))
-    data = data[(2, 1, 0), :, :]
+    
     mean = np.asarray([103.939, 116.779, 123.68])
     mean = mean[:, np.newaxis, np.newaxis]
     data -= mean
-
+    data = data[(2, 1, 0), :, :]
     return data
 
 def main(args):
@@ -78,8 +82,9 @@ def main(args):
 
                 # Get features from CNN
                 feat = cnn.blobs['conv5_4'].data
+                feat = feat.transpose((0, 2, 3, 1))
                 if len(image_files) < args.batch_size:
-                    feat = feat[len(image_files), :]
+                    feat = feat[len(image_files), :, :, :]
 
                 # Store it in a sparse matrix
                 if i == 0:
