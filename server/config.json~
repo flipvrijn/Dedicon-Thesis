@@ -1,0 +1,6 @@
+{
+	"UPLOAD_FOLDER": "static/images",
+	"MODELS_FOLDER": "/media/Data/flipvanrijn/models",
+	"IMAGES_FOLDER": "/media/Data/flipvanrijn/datasets/coco/images",
+	"DEBUG": true
+}

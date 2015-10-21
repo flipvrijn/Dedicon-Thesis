@@ -105,4 +105,106 @@ $(function() {
 			formData.append('introspect', introspect);
 		}
 	});
+
+	// Float format helper function
+	function formatFloat(f) {
+		f = f * 100
+		return f.toFixed(1);
+	}
+
+	// -----------------
+	// MODEL METRICS
+	// -----------------
+	// Handle click events for model metrics
+	$('body').on('click', '.btn-metric', function() {
+		$(this).toggleClass('active');
+		var metrics = []
+		$('.btn-metric.active').each(function() {
+			metrics.push($(this).attr('data-name'));
+		});
+		$('input[name="metrics"]').val(metrics.join(','))
+	}).on('click', 'a#evaluate-metrics', function() {
+		$('img#metrics-processing').show();
+
+		var formData = new FormData($(this).closest('form')[0]);
+		$.ajax({
+			method: 'POST',
+			dataType: 'json',
+			url: '/model/metrics',
+			data: formData,
+			cache: false,
+			processData: false,
+    		contentType: false,
+			success: function(response) {
+				var context  = {
+					bleu1: (response.bleu) ? formatFloat(response.bleu[0]) : null,
+					bleu2: (response.bleu) ? formatFloat(response.bleu[1]) : null,
+					bleu3: (response.bleu) ? formatFloat(response.bleu[2]) : null,
+					bleu4: (response.bleu) ? formatFloat(response.bleu[3]) : null,
+					rouge: (response.rouge) ? formatFloat(response.rouge) : null,
+					cider: (response.cider) ? formatFloat(response.cider) : null,
+					meteor: (response.meteor) ? formatFloat(response.meteor) : null,
+				};
+				var source   = $("#scores-table-template").html();
+				var template = Handlebars.compile(source);
+				var html     = template(context);
+				$('#scores-table').find('tbody').prepend(html);
+				$('img#metrics-processing').hide();
+			}
+		});
+	}).on('click', 'a#save-metric', function() {
+		$('img#metrics-saving').show();
+		var form = $(this).closest('form');
+		var metricsFormData = new FormData(form[0]);
+		$.ajax({
+			method: 'POST',
+			dataType: 'json',
+			url: '/model/metrics/save',
+			data: metricsFormData,
+			processData: false,
+    		contentType: false,
+			success: function(response) {
+				form.replaceWith(response.name);
+				$('img#metrics-saving').hide();
+			}
+		});
+	}).on('click', 'a#remove-metric', function() {
+		$(this).closest('tr').remove();
+	});
+
+	// ----------------
+	// CONTEXT VALIDATION
+	// ----------------
+	// Handle keyup events for context validation
+	$('body').keyup(function(event) {
+		var valid = null;
+		var id    = $('div#context-wrapper').attr('data-id');
+		console.log(event.which);
+
+		// keypress: q = 113, ] = 93
+		// keyup: q = 81, ] = 221
+		if (event.which == 81) {
+			valid = '1';
+		} else if (event.which == 221) {
+			valid = '0';
+		}
+
+		// Only respond to correct key presses
+		if (valid != null) {
+			$.ajax({
+				method: 'GET',
+				dataType: 'json',
+				cache: false,
+				url: '/context/validate/' + id + '/' + valid,
+				success: function(response) {
+					$('#context-title').text(response.title);
+					$('#context-wrapper').attr('data-id', response.idx);
+					// cache buster
+					$('#context-image').attr('src', '/static/images/context_image.jpg?t=' + new Date().getTime());
+					$('#context-description').text(response.description);
+					$('#context-tags').text(response.tags.join(', '));
+				}
+			});
+		}
+	});
 });

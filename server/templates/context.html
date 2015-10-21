@@ -1,0 +1,21 @@
+{% extends 'layout.html' %}
+{% block body %}
+	<h1>Context valideren</h1>
+
+	<p>Er zijn <strong>{{ stats['non_empty'] }} / {{ stats['total'] }} ({{ '{0:.2f}'.format(stats['non_empty'] / stats['total'] * 100) }}%)</strong> plaatjes met enige vorm van context.</p>
+
+	<p>Op dit moment zijn er <strong>{{ stats['valid'] }} ({{ '{0:.2f}'.format(stats['valid'] / stats['non_empty'] * 100) }}%)</strong> plaatjes met goedgekeurde context.</p>
+
+	<p>Met onderstaande tool kan deze context handmatig gevalideerd worden: Goed = <kbd>Q</kbd>, Fout = <kbd>]</kbd></p>
+	<div id="context-wrapper" class="row" data-id="{{ data['idx'] }}">
+		<div class="col-sm-6 col-md-4 col-md-offset-3">
+			<div class="thumbnail">
+				<h5 id="context-title">{{ data['title'] if data['title'] else '-' }}</h5>
+				<img src="/static/images/context_image.jpg" id="context-image">
+				<p><strong>Omschrijving:</strong> <span id="context-description">{{ data['description'] if data['description'] else '-' }}</span></p>
+				<p><strong>Tags:</strong> <span id="context-tags">{{ ', '.join(data['tags']) }}</span></p>
+			</div>
+		</div>
+	</div>
+	
+{% endblock %}

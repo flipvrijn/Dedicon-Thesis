@@ -41,6 +41,15 @@
                         {% for item in nav.top %}
                         <li class="{{ 'active' if item.is_active else ''}}">
                             <a href="{{ item.url }}">{{ item.label }}</a>
+                            {% if item.items %}
+                            <ul class="nav nav-sidebar">
+                                {% for child in item.items %}
+                                <li class="{{ 'active' if child.is_active else ''}}">
+                                    <a href="{{ child.url }}">{{ child.label }}</a>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                            {% endif %}
                         </li>
                         {% endfor %}
                     </ul>
@@ -58,6 +67,7 @@
         <script src="{{ url_for('static', filename='bootstrap.min.js') }}"></script>
         <script src="{{ url_for('static', filename='dropzone.min.js') }}"></script>
         <script src="{{ url_for('static', filename='jquery.sparkline.min.js') }}"></script>
+        <script src="{{ url_for('static', filename='handlebars.js') }}"></script>
         <script src="{{ url_for('static', filename='scripts.js') }}"></script>
     </body>
 </html>

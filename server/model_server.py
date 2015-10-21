@@ -27,7 +27,6 @@ import sys
 sys.path.insert(0, '/home/flipvanrijn/Workspace/Dedicon-Thesis/networks/arctic-captions/')
 
 import capgen
-import generate_caps as gencaps
 
 class ImageServer(SocketServer.ThreadingTCPServer):
     def __init__(self, server_address, RequestHandlerClass, args):
@@ -108,18 +107,18 @@ class ImageServer(SocketServer.ThreadingTCPServer):
         self._update_status(4)
 
         # build the sampling functions and model
-        self.trng = RandomStreams(1234)
-        use_noise = theano.shared(np.float32(0.), name='use_noise')
+        self.trng    = RandomStreams(1234)
+        use_noise    = theano.shared(np.float32(0.), name='use_noise')
 
-        params = capgen.init_params(self.options)
-        params = capgen.load_params(self.model, params)
+        params       = capgen.init_params(self.options)
+        params       = capgen.load_params(self.model, params)
         self.tparams = capgen.init_tparams(params)
 
         # word index
-        self.f_init, self.f_next = capgen.build_sampler(self.tparams, self.options, use_noise, self.trng)
+        self.f_init, self.f_next                = capgen.build_sampler(self.tparams, self.options, use_noise, self.trng)
 
         self.trng, use_noise, inps, \
-        alphas, alphas_samples, cost, opt_outs = capgen.build_model(self.tparams, self.options)
+        alphas, alphas_samples, cost, opt_outs  = capgen.build_model(self.tparams, self.options)
 
         # get the alphas and selector value [called \beta in the paper]
 

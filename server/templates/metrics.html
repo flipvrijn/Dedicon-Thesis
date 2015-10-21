@@ -1,0 +1,101 @@
+{% extends 'layout.html' %}
+{% block body %}
+	<h1>Metrieken</h1>
+	
+	<p>Om een getal te kunnen geven aan hoe goed het model menselijke beschrijvingen kan benaderen worden vier metrieken gebruikt in de literatuur: <i>BLEU <sup><a href="#ref1">[1]</a></i>, <i>ROUGE <sup><a href="#ref2">[2]</a></i>, <i>CIDEr <sup><a href="#ref3">[3]</a></i> en <i>METEOR <sup><a href="#ref4">[4]</a></sup></i>.</p>
+
+	<p>Selecteer welke metrieken er geevalueerd moeten worden.</p>
+
+	<div class="row">
+		<div class="col-md-3">
+			
+		</div>
+	</div>
+
+	<form class="form-horizontal" method="POST" enctype="multipart/form-data">
+		
+		<div class="form-group">
+			<label class="col-lg-2 control-label">Metrieken</label>
+			<div class="col-lg-10">
+				<div class="btn-group">
+					<a href="#" class="btn btn-default btn-metric" data-name="bleu">BLEU</a>
+					<a href="#" class="btn btn-default btn-metric" data-name="rouge">ROUGE</a>
+					<a href="#" class="btn btn-default btn-metric" data-name="cider">CIDEr</a>
+					<a href="#" class="btn btn-default btn-metric" data-name="meteor">METEOR</a>
+				</div>
+				<input type="hidden" name="metrics">
+			</div>
+		</div>
+		<div class="form-group">
+			<label class="col-lg-2 control-label">Bestand met hypotheses</label>
+			<div class="col-lg-10">
+				<input type="file" name="hypotheses_file" class="form-control">
+			</div>
+		</div>
+		<div class="form-group">
+			<label class="col-lg-2 control-label">Bestand met referenties</label>
+			<div class="col-lg-10">
+				<input type="file" name="references_file" class="form-control">
+			</div>
+		</div>
+		<div class="form-group">
+			<div class="col-sm-offset-2 col-sm-10">
+				<a href="#" id="evaluate-metrics" class="btn btn-default">Evalueren <img id="metrics-processing" src="/static/loader.gif" style="display: none"></a>
+			</div>
+		</div>
+	</form>
+
+	<table class="table" id="scores-table">
+		<thead>
+			<tr>
+				<th>Methode</th>
+				<th>BLEU-1</th>
+				<th>BLEU-2</th>
+				<th>BLEU-3</th>
+				<th>BLEU-4</th>
+				<th>ROUGE</th>
+				<th>CIDEr</th>
+				<th>METEOR</th>
+			</tr>
+		</thead>
+		<tbody>
+			{% for name, values in metrics.items() %}
+			<tr>
+				<td>{{ name }}</td>
+				{% for value in values %}
+				<td>{{ value if value }}</td>
+				{% endfor %}
+			</tr>
+			{% endfor %}
+		</tbody>
+	</table>
+
+	<script id="scores-table-template" type="text/x-handlebars-template">
+		{% raw %}
+		<tr class="active">
+			<td>
+				<form class="form-inline">
+					<input type="text" name="metric-name" value="Naam"> 
+					<input type="hidden" name="metric-values" value="{{bleu1}},{{bleu2}},{{bleu3}},{{bleu4}},{{rouge}},{{cider}},{{meteor}}">
+					<a href="#" id="save-metric" class="btn btn-default btn-sm">Opslaan <img id="metrics-saving" src="/static/loader.gif" style="display: none"></a>
+					<a href="#" id="remove-metric" class="btn btn-danger btn-sm">Verwijderen</a>
+				</form>
+			</td>
+			<td>{{bleu1}}</td>
+			<td>{{bleu2}}</td>
+			<td>{{bleu3}}</td>
+			<td>{{bleu4}}</td>
+			<td>{{rouge}}</td>
+			<td>{{cider}}</td>
+			<td>{{meteor}}</td>
+		</tr>
+		{% endraw %}
+	</script>
+
+	<div class="voffset4">
+		<p>[1] <a id="ref1" href="https://en.wikipedia.org/wiki/BLEU">https://en.wikipedia.org/wiki/BLEU</a> </p>
+		<p>[2] <a id="ref2" href="https://en.wikipedia.org/wiki/ROUGE_%28metric%29">https://en.wikipedia.org/wiki/ROUGE_(metric)</a> </p>
+		<p>[3] <a id="ref3" href="http://arxiv.org/abs/1411.5726">http://arxiv.org/abs/1411.5726</a> </p>
+		<p>[4] <a id="ref4" href="https://en.wikipedia.org/wiki/METEOR">https://en.wikipedia.org/wiki/METEOR</a></p>
+	</div>
+{% endblock %}

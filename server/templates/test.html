@@ -3,6 +3,8 @@
 	<h1>Test model</h1>
 	{% if not name %}
 	<p>Op dit moment loopt er geen model. Klik <a href="/">hier</a> om er een te starten.</p>
+	{% elif status != 5 %}
+	<p>Het model <strong>{{ name }}</strong> is nog niet klaar met opstarten. Huidige status: <strong>{{ status_text }}</strong>.</p>
 	{% else %}
 	<p>Op dit moment loopt het model <strong>{{ name }}</strong>.</p>
 	<p>Het is mogelijk om in te zien hoe het model 'kijkt': </p>

@@ -54,6 +54,10 @@ body {
   background-color: #428bca;
 }
 
+li > .nav li {
+  margin-left: 50px;
+}
+
 
 /*
  * Main content
