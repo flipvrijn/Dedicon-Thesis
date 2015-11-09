@@ -25,13 +25,18 @@ def sanitize_tags(tags):
     return [sanitize_text(tag) for tag in tags]
 
 def sanitize_text(text):
-    return ' '.join(
-        [ token for token in nltk.word_tokenize(
-            ''.join(
-                [ fragment.replace('\n', '').strip().lower() for fragment in strip_tags(text) ]
-            )
-        ) if token.isalnum() or token in ['.', ',', '!', '?']]
-    )
+    fragments = []
+    for fragment in strip_tags(text):
+        fragment = fragment.strip().replace('\n', ' ').lower()
+        fragments.append(fragment)
+    
+    sanitized = []
+    tokens = nltk.word_tokenize(' '.join(fragments))
+    for token in tokens:
+        if token.isalnum() or token in ['.', ',', '!', '?']:
+            sanitized.append(token)
+
+    return ' '.join(sanitized)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -57,21 +62,25 @@ if __name__ == '__main__':
             flickr_data = json.load(open(cp_latest_file, 'r'))
             flickr_data = flickr_data['images']
 
+    new_flickr_data = {}
     bar = Bar('Sanitizing', max=len(flickr_data['images']), suffix='%(percent)d%%')
     for image_id in flickr_data['images']:
         try:
             image_data = flickr_data['images'][image_id]
             if image_data != None and 'sanitized' not in image_data.keys():
                 # Check if all data is available
-                image_data = {
-                    'tags'          : sanitize_tags(image_data['tags']),
-                    'description'   : sanitize_text(image_data['description']),
-                    'title'         : sanitize_text(image_data['title']),
+                tags = sanitize_tags(image_data['tags'])
+                description = sanitize_text(image_data['description'])
+                title = sanitize_text(image_data['title'])
+                new_image_data = {
+                    'tags'          : tags,
+                    'description'   : description,
+                    'title'         : title,
                     'url'           : image_data['url'],
                     'sanitized'     : True
                 }
 
-                flickr_data[image_id] = image_data
+                new_flickr_data[image_id] = new_image_data
             bar.next()
         except:
             # Interrupted and saving to file to, to continue later
@@ -82,7 +91,7 @@ if __name__ == '__main__':
     bar.finish()
 
     print 'Writing Flickr data to file...'
-    json.dump({'images': flickr_data}, open(fo, 'w'))
+    json.dump({'images': new_flickr_data}, open(fo, 'w'))
 
     print 'Cleaning up checkpoint files...'
     if cp_files:
