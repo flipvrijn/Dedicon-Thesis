@@ -29,13 +29,50 @@
 		<div class="form-group">
 			<label class="col-lg-2 control-label">Bestand met hypotheses</label>
 			<div class="col-lg-10">
-				<input type="file" name="hypotheses_file" class="form-control">
+				<div class="row">
+					<div class="col-md-3">
+						{% if hypotheses_files %}
+						<select class="form-control">
+							{% for file in hypotheses_files %}
+							<option>{{ file }}</option>
+							{% endfor %}
+						</select>
+						{% else %}
+						<p class="form-control-static">Geen hypothese bestanden gevonden.</p>
+						{% endif %}
+					</div>
+					<div class="col-md-9">
+						<div class="btn-group">
+							<button class="btn dropdown-toggle btn-gen-hyp" {{ 'disabled="disabled"' if generating_hypos else ''}} data-toggle="dropdown">
+								Genereer hypotheses <span class="caret"></span>
+								<img src="{{ url_for('static', filename='loader.gif') }}" id="gen-hyp-loader" style="display:none">
+							</button>
+							<ul class="dropdown-menu">
+								{% for model in models %}
+								<li><a href="#" class="hyp-model" data-name="{{ model['name'] }}">{{ model['name'] }}</a></li>
+								{% endfor %}
+							</ul>
+						</div>
+						<span id="gen-hyp-error" class="col-md-offset-1 text-danger"></span>
+					</div>
+				</div>
 			</div>
 		</div>
 		<div class="form-group">
 			<label class="col-lg-2 control-label">Bestand met referenties</label>
 			<div class="col-lg-10">
-				<input type="file" name="references_file" class="form-control">
+				<div class="row">
+					<div class="col-md-3">
+						<input type="file" name="references_file" class="form-control">
+					</div>
+					<div class="col-md-9">
+						<button class="btn">
+							Genereer referenties
+							<img src="{{ url_for('static', filename='loader.gif') }}" id="gen-ref-loader" style="display:none">
+						</button>
+						<span id="gen-ref-error" class="col-md-offset-1 text-danger"></span>
+					</div>
+				</div>
 			</div>
 		</div>
 		<div class="form-group">
@@ -60,10 +97,17 @@
 		</thead>
 		<tbody>
 			{% for name, values in metrics.items() %}
+				{% set outer_loop = loop %}
 			<tr>
 				<td>{{ name }}</td>
 				{% for value in values %}
-				<td>{{ value if value }}</td>
+				<td>
+					{% if outer_loop.index0 == col_max[loop.index0] %}
+						<strong>{{ value if value }}</strong>
+					{% else %}
+						{{ value if value }}
+					{% endif %}
+				</td>
 				{% endfor %}
 			</tr>
 			{% endfor %}

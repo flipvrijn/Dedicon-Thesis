@@ -2,17 +2,24 @@
 {% block body %}
 	<h1>Status trainen</h1>
 	<p>Een lijst met alle statussen van de modellen die op dit moment aan het trainen zijn.</p>
+
+	<button data-toggle="modal" data-target="#start-training-modal" class="btn btn-success" {{ 'disabled="disabled"' if one_training else '' }}>
+		<span class="glyphicon glyphicon-plus"></span> Model trainen
+	</button>
+
 	{% if not files %}
 	<p class="text-info">Op dit moment zijn er geen status bestanden.</p>
 	{% else %}
-	<table class="table" id="models-table">
+	<table class="table voffset3" id="models-table">
 		<tr>
 			<th>Naam</th>
 			<th>Status</th>
 			<th>Epoch</th>
+			<th>Tijd</th>
 			<th>Kost</th>
 			<th>Sample</th>
 			<th>Vroegtijdig gestopt</th>
+			<th>Actie</th>
 		</tr>
 		{% for filename, data in files.items() %}
 		<tr class="{{ data['class'] }}">
@@ -25,6 +32,7 @@
 			</td>
 			{% if data['status'] > 5 %}
 				<td>{{ data['epoch'] }}</td>
+				<td>{{ data['training_time'] }}</td>
 				<td><span class="sparkline">{{ data['costs'] }}</span></td>
 				<td>
 					<dl>
@@ -35,14 +43,54 @@
 					</dl>
 				</td>
 				<td>{{ 'ja' if data['early_stop'] else 'nee' }}</td>
+				<td>
+					{% if data['training'] %}
+					<a href="/training/stop/{{ filename }}" class="btn btn-danger stop-training">
+						<span class="glyphicon glyphicon-stop"></span> Stoppen
+					</a>
+					{% endif %}
+				</td>
 			{% else %}
 				<td></td>
 				<td></td>
 				<td></td>
 				<td></td>
+				<td></td>
+				<td>
+					{% if data['training'] %}
+					<a href="/training/stop/{{ filename }}" class="btn btn-danger stop-training">
+						<span class="glyphicon glyphicon-stop"></span> Stoppen
+					</a>
+					{% endif %}
+				</td>
 			{% endif %}
 		</tr>
 		{% endfor %}
 	</table>
 	{% endif %}
+
+	<div id="start-training-modal" class="modal">
+	  <div class="modal-dialog modal-sm">
+	    <div class="modal-content">
+	      <div class="modal-header">
+	        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+	        <h4 class="modal-title">Model trainen</h4>
+	      </div>
+	      <div class="modal-body">
+	        <form class="form">
+	        	<div class="form-group">
+	        		<div class="input-group">
+	        			<input type="text" class="form-control" name="model_name" placeholder="Model naam">
+	        			<span class="input-group-addon">.npz</span>
+	        		</div>
+	        	</div>
+	        </form>
+	      </div>
+	      <div class="modal-footer">
+	        <button type="button" class="btn btn-default" data-dismiss="modal">Annuleren</button>
+	        <button type="button" id="start-training" class="btn btn-primary" data-dismiss="modal">Start!</button>
+	      </div>
+	    </div><!-- /.modal-content -->
+	  </div><!-- /.modal-dialog -->
+	</div><!-- /.modal -->
 {% endblock %}

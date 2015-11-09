@@ -24,7 +24,7 @@ import skimage.util
 from PIL import Image
 
 import sys
-sys.path.insert(0, '/home/flipvanrijn/Workspace/Dedicon-Thesis/networks/arctic-captions/')
+sys.path.insert(0, '/home/flipvanrijn/Workspace/Dedicon-Thesis/models/attention/')
 
 import capgen
 
@@ -67,7 +67,7 @@ class ImageServer(SocketServer.ThreadingTCPServer):
     def _load_worddict(self):
         self._update_status(2)
 
-        with open('/media/Data/flipvanrijn/datasets/coco/dictionary.pkl', 'rb') as f:
+        with open('/media/Data/flipvanrijn/datasets/coco/processed/full/dictionary.pkl', 'rb') as f:
             self.worddict = pkl.load(f)
 
         self.word_idict = dict()
@@ -78,8 +78,7 @@ class ImageServer(SocketServer.ThreadingTCPServer):
 
     # From author Kelvin Xu:
     # https://github.com/kelvinxu/arctic-captions/blob/master/alpha_visualization.ipynb
-    def load_image(self, filename, resize=256, crop=224):
-        image = Image.open(filename)
+    def load_image(self, image, resize=256, crop=224):
         width, height = image.size
 
         if width > height:
@@ -167,11 +166,22 @@ class ImageHandler(SocketServer.BaseRequestHandler):
         return self.recvall(length)
 
     def handle(self):
-        data = self.recv_msg()
-        file_path, introspect = data.split(';')
+        '''
+        Expects: pickled({
+            pixels: bytestring,
+            mode: RGB,
+            size: tuple,
+            file_path: string,
+        })
+        '''
+        data = self.recv_msg() # raw pickled data
+
+        unpickled = pkl.loads(data) # raw unpicled data
+        file_path  = unpickled['file_path']
         # Whether to generate the alpha images for introspection
-        introspect = bool(int(introspect))
-        img = self.server.load_image(file_path)
+        introspect = unpickled['introspect']
+        reconstructed_img = Image.frombytes(unpickled['mode'], unpickled['size'], unpickled['pixels'])
+        img = self.server.load_image(reconstructed_img)
         # Context of the model
         context = self.server.preprocess(img)
 

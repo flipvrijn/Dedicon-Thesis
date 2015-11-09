@@ -6,9 +6,14 @@ import os.path
 import socket
 import json
 import struct
+import cPickle
+import time 
+import glob
 
 import h5py
 import numpy as np
+
+from PIL import Image
 
 from IPython import embed
 
@@ -19,6 +24,7 @@ from pycocoevalcap.cider.cider import Cider
 from pycocoevalcap.meteor.meteor import Meteor
 
 models_directory = '/media/Data/flipvanrijn/models'
+network_directory = '../models/attention'
 context_file = '/media/Data/flipvanrijn/datasets/coco/sents_train.h5'
 
 def scores(hypo, refs, metrics):
@@ -126,6 +132,18 @@ def check_model_running(name):
 
     return False
 
+def check_model_training(name):
+    ''' Checks whether a model is being trained '''
+    for process in psutil.process_iter():
+        try:
+            cmd = ' '.join(process.cmdline())
+            if 'python2.7' in process.name() and 'evaluate_coco.py' in cmd and name in cmd:
+                return True
+        except psutil.Error:
+            pass
+
+    return False
+
 def running_model_name():
     for process in psutil.process_iter():
         try:
@@ -135,6 +153,41 @@ def running_model_name():
                 match   = pattern.search(cmd)
                 if match:
                     return os.path.split(match.group())[1]
+                return None
+        except psutil.Error:
+            pass
+
+    return None
+
+def get_models():
+    models = []
+    files = glob.glob('{}/*.pkl'.format(models_directory))
+    files.sort(key=lambda x: os.stat(x).st_mtime, reverse=True)
+    for f in files:
+        filename = os.path.split(f)[1] # only the filename
+        name     = filename[:-4] # without the '.pkl'
+        modified = time.ctime(os.path.getmtime(f))
+        status   = status_model(name)
+        with open(f, 'r') as handler:
+            options  = cPickle.load(handler)
+        models.append({
+            'name': name, 
+            'modified': modified, 
+            'options': options, 
+            'status': status
+        })
+
+    return models
+
+def training_model_name():
+    for process in psutil.process_iter():
+        try:
+            cmd = ' '.join(process.cmdline())
+            if 'python2.7' in process.name() and 'evaluate_coco.py' in cmd and '.npz' in cmd:
+                pattern = re.compile('\s(.*?\.npz)')
+                match   = pattern.search(cmd)
+                if match:
+                    return match.groups()[0]
                 return None
         except psutil.Error:
             pass
@@ -158,8 +211,8 @@ def start_model(name):
             cmd = ['python2.7', 'model_server.py',
                 '--model={}/{}'.format(models_directory, name), 
                 '--options={}/{}.pkl'.format(models_directory, name),
-                '--prototxt={}/VGG_ILSVRC_19_layers_deploy.prototxt'.format(models_directory),
-                '--caffemodel={}/VGG_ILSVRC_19_layers.caffemodel'.format(models_directory)]
+                '--prototxt={}/cnn/VGG_ILSVRC_19_layers_deploy.prototxt'.format(models_directory),
+                '--caffemodel={}/cnn/VGG_ILSVRC_19_layers.caffemodel'.format(models_directory)]
             subprocess.Popen(cmd)
         thread.start_new_thread(run_server, ())
 
@@ -171,20 +224,69 @@ def stop_model(name):
     ''' Stops a model by name '''
     for process in psutil.process_iter():
         try:
-            if 'python2.7' in process.name() and name in ' '.join(process.cmdline()):
+            cmd = ' '.join(process.cmdline())
+            if 'python2.7' in process.name() and name in cmd:
                 process.kill()
 
-                # Change status file
-                json.dump({'status': 0}, open('{}/{}_runningstatus.json'.format(models_directory, name), 'w'))
                 return True
         except psutil.Error:
             pass
     return False
 
+def start_training(name):
+    ''' Starts the trainer for a model '''
+    try:
+        def run_trainer():
+            cmd = ['python2.7', os.path.join(network_directory, 'evaluate_coco.py'), models_directory, name]
+            subprocess.Popen(cmd)
+        thread.start_new_thread(run_trainer, ())
+
+        return True
+    except:
+        return False
+
+def stop_training(name):
+    ''' Stops a model being trained '''
+    for process in psutil.process_iter():
+        try:
+            cmd = ' '.join(process.cmdline())
+            if 'python2.7' in process.name() and 'evaluate_coco.py' in cmd and name in cmd:
+                process.kill()
+
+                return True
+        except psutil.Error:
+            pass
+
+    return False
+
+def resize_image(image_path, resize=256, crop=224):
+    image = Image.open(image_path)
+    width, height = image.size
+
+    if width > height:
+        width = (width * resize) / height
+        height = resize
+    else:
+        height = (height * resize) / width
+        width = resize
+    left = (width  - crop) / 2
+    top  = (height - crop) / 2
+    image_resized = image.resize((width, height), Image.BICUBIC).crop((left, top, left + crop, top + crop))
+    data = np.array(image_resized.convert('RGB').getdata()).reshape(crop, crop, 3)
+
+    embed()
+    resized = Image.fromarray(data)
+    resized.save(image_path)
+
 def query_model(image_path, introspect):
+    ''' Queries the caption model with an image '''
     # Send it to the server via socket
     HOST, PORT = "localhost", 9999
-    data = '{};{}'.format(image_path, 1 if introspect else 0)
+    
+    # Read image and serialize it
+    img = Image.open(image_path)
+    data = {'pixels': img.tobytes(), 'size': img.size, 'mode': img.mode, 'introspect': introspect, 'file_path': image_path}
+    data = cPickle.dumps(data)
 
     # Create a socket (SOCK_STREAM means a TCP socket)
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -201,3 +303,30 @@ def query_model(image_path, introspect):
         sock.close()
 
     return received
+
+def generate_caps(name, saveto):
+    ''' Starts generator for caps of dataset '''
+    try:
+        def run_trainer():
+            cmd = ['python2.7', 
+                os.path.join(network_directory, 'generate_caps.py'), 
+                os.path.join(models_directory, name),   # model input
+                saveto]                                 # saveto
+            subprocess.Popen(cmd)
+        thread.start_new_thread(run_trainer, ())
+
+        return True
+    except:
+        return False
+
+def generating_caps():
+    ''' Checks if caps are being generated '''
+    for process in psutil.process_iter():
+        try:
+            cmd = ' '.join(process.cmdline())
+            if 'python2.7' in process.name() and 'generate_caps.py' in cmd:
+                return True
+        except psutil.Error:
+            pass
+
+    return False

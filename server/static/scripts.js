@@ -1,6 +1,7 @@
 $(function() {
 	var images_directory = '/static/images/';
 
+	// ---------------- Models overview ----------------
 	// Click events for the models overview table
 	$('table#models-table').on('click', 'a.show-options', function() {
 		$(this).siblings('div.options-wrapper').toggle();
@@ -36,6 +37,8 @@ $(function() {
 		});
 	});
 
+	// ---------------- Training status ----------------
+
 	// Generating a sparkline from data
 	$('span.sparkline').each(function() {
 		$(this).sparkline('html', {
@@ -44,6 +47,15 @@ $(function() {
 			'disableHighlight': true,
 		});
 	});
+
+	$('div.modal').on('click', 'button#start-training', function() {
+		var model_name = $('body').find('input[name="model_name"]').val()
+		if (model_name) {
+			window.location.replace('/training/start/'+model_name+'.npz');
+		}
+	});
+
+	// ---------------- Test model ----------------
 
 	function handle_image_response(response) {
 		if (response.error) {
@@ -82,6 +94,24 @@ $(function() {
 		}).done(function(response) {
 			handle_image_response(response);
 		});
+	}).on('click', 'button#btn-with-attention', function() {
+		// Waiting text
+		var busy_status = $(this).find('span.busy');
+		busy_status.show();
+
+		var image_path = $('div#image-wrapper').find('img#resulting-image').attr('src');
+		image_path = image_path.split('/');
+		var image = image_path[image_path.length -1];
+
+		$.ajax({
+			method: 'GET',
+			dataType: 'json',
+			url: '/image/attention/' + image
+		}).done(function(response) {
+			busy_status.hide();
+
+			handle_image_response(response);
+		});
 	});
 
 	// Show corresponding alpha image when mouseover
@@ -112,10 +142,22 @@ $(function() {
 		return f.toFixed(1);
 	}
 
-	// -----------------
-	// MODEL METRICS
-	// -----------------
+	// ---------------- Metrics ----------------
 	// Handle click events for model metrics
+	function check_caption_generation_status(name) {
+		$.ajax({
+			method: 'GET',
+			dataType: 'json',
+			url: '/captions/generate/' + name + '/status',
+			success: function(response) {
+				if (response.status == 'pending') {
+					setTimeout(function() { check_caption_generation_status(); }, 5000);
+				} else {
+					success(response);
+				}
+			}
+		})
+	}
 	$('body').on('click', '.btn-metric', function() {
 		$(this).toggleClass('active');
 		var metrics = []
@@ -123,6 +165,23 @@ $(function() {
 			metrics.push($(this).attr('data-name'));
 		});
 		$('input[name="metrics"]').val(metrics.join(','))
+	}).on('click', '.hyp-model', function() {
+		var name = $(this).attr('data-name');
+		console.log('clicked');
+
+		$('.btn-gen-hyp').attr('disabled', 'disabled');
+		$('.btn-gen-hyp').find('img').show();
+
+		$.ajax({
+			method: 'GET',
+			dataType: 'json',
+			url: '/captions/generate/' + name,
+			success: function(response) {
+				// start polling status of generating hyp
+
+				// once complete, enable button and hide loading img
+			}
+		});
 	}).on('click', 'a#evaluate-metrics', function() {
 		$('img#metrics-processing').show();
 
@@ -172,39 +231,38 @@ $(function() {
 		$(this).closest('tr').remove();
 	});
 
-	// ----------------
-	// CONTEXT VALIDATION
-	// ----------------
+	// ---------------- Context validation ----------------
 	// Handle keyup events for context validation
-	$('body').keyup(function(event) {
-		var valid = null;
-		var id    = $('div#context-wrapper').attr('data-id');
-		console.log(event.which);
+	if ($('div#context-wrapper').length) {
+		$('body').keyup(function(event) {
+			var valid = null;
+			var id    = $('div#context-wrapper').attr('data-id');
 
-		// keypress: q = 113, ] = 93
-		// keyup: q = 81, ] = 221
-		if (event.which == 81) {
-			valid = '1';
-		} else if (event.which == 221) {
-			valid = '0';
-		}
+			// keypress: q = 113, ] = 93
+			// keyup: q = 81, ] = 221
+			if (event.which == 81) {
+				valid = '1';
+			} else if (event.which == 221) {
+				valid = '0';
+			}
 
-		// Only respond to correct key presses
-		if (valid != null) {
-			$.ajax({
-				method: 'GET',
-				dataType: 'json',
-				cache: false,
-				url: '/context/validate/' + id + '/' + valid,
-				success: function(response) {
-					$('#context-title').text(response.title);
-					$('#context-wrapper').attr('data-id', response.idx);
-					// cache buster
-					$('#context-image').attr('src', '/static/images/context_image.jpg?t=' + new Date().getTime());
-					$('#context-description').text(response.description);
-					$('#context-tags').text(response.tags.join(', '));
-				}
-			});
-		}
-	});
+			// Only respond to correct key presses
+			if (valid != null) {
+				$.ajax({
+					method: 'GET',
+					dataType: 'json',
+					cache: false,
+					url: '/context/validate/' + id + '/' + valid,
+					success: function(response) {
+						$('#context-title').text(response.title);
+						$('#context-wrapper').attr('data-id', response.idx);
+						// cache buster
+						$('#context-image').attr('src', '/static/images/context_image.jpg?t=' + new Date().getTime());
+						$('#context-description').text(response.description);
+						$('#context-tags').text(response.tags.join(', '));
+					}
+				});
+			}
+		});
+	}
 });

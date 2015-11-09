@@ -46,6 +46,15 @@
                                 {% for child in item.items %}
                                 <li class="{{ 'active' if child.is_active else ''}}">
                                     <a href="{{ child.url }}">{{ child.label }}</a>
+                                    {% if child.items %}
+                                    <ul class="nav nav-sidebar">
+                                        {% for subchild in child.items %}
+                                        <li class="{{ 'active' if subchild.is_active else '' }}">
+                                            <a href="{{ subchild.url }}">{{ subchild.label }}</a>
+                                        </li>
+                                        {% endfor %}
+                                    </ul>
+                                    {% endif %}
                                 </li>
                                 {% endfor %}
                             </ul>
