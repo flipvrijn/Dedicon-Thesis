@@ -33,24 +33,24 @@ def save_split(file_name, lst):
             print>>f, l
 
 def main():
-    split               = 'train'
-    contexts_file       = '/media/Data/flipvanrijn/datasets/coco/processed/full/'+split+'_context.npz'
-    images_file         = '/media/Data/flipvanrijn/datasets/coco/processed/full/'+split+'2014list.txt'
-    all_images_file     = ['/media/Data/flipvanrijn/datasets/coco/processed/reduced/train2014list.txt', '/media/Data/flipvanrijn/datasets/coco/processed/reduced/val2014list.txt']
-    captions_file       = '/media/Data/flipvanrijn/datasets/coco/processed/full/captions_'+split+'2014.json'
-    raw_context_file    = '/media/Data/flipvanrijn/datasets/coco/processed/full/coco_'+split+'_context.pkl'
-    image_feats         = '/media/Data/flipvanrijn/datasets/coco/processed/full/features_'+split+'_conv5_4.npz'
-    output_dir          = '/media/Data/flipvanrijn/datasets/coco/processed/reduced'
-    splits_dir          = '/media/Data/flipvanrijn/datasets/coco/processed/full/splits'
+    split               = 'val'
+    contexts_file       = '/media/Data_/flipvanrijn/datasets/coco/processed/full/'+split+'_context.npz'
+    images_file         = '/media/Data_/flipvanrijn/datasets/coco/processed/full/'+split+'2014list.txt'
+    all_images_file     = ['/media/Data_/flipvanrijn/datasets/coco/processed/reduced/train2014list.txt', '/media/Data/flipvanrijn/datasets/coco/processed/reduced/val2014list.txt']
+    captions_file       = '/media/Data_/flipvanrijn/datasets/coco/processed/full/captions_'+split+'2014.json'
+    raw_context_file    = '/media/Data_/flipvanrijn/datasets/coco/processed/full/coco_'+split+'_context.pkl'
+    image_feats         = '/media/Data_/flipvanrijn/datasets/coco/processed/full/features_'+split+'_conv5_4.npz'
+    output_dir          = '/media/Data_/flipvanrijn/datasets/coco/processed/reduced'
+    splits_dir          = '/media/Data_/flipvanrijn/datasets/coco/processed/full/splits'
 
     # Enable / Disable reductions
     flags = {
-        'context': False,
+        'context': True,
         'images_list': False,
         'captions': False,
         'raw_context': False,
         'image_feats': False,
-        'splits': True,
+        'splits': False,
     }
 
     # Loading context info

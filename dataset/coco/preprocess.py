@@ -15,9 +15,9 @@ from progress.bar import Bar
 
 from IPython import embed
 
-processing_type = 'mini' # either 'full'/'reduced'
-base_path='/media/Data/flipvanrijn/datasets/coco/processed/'+processing_type+'/'
-split_path='/media/Data/flipvanrijn/datasets/coco/processed/'+processing_type+'/splits/'
+processing_type = 'reduced' # either 'full'/'reduced'
+base_path='/media/Data_/flipvanrijn/datasets/coco/processed/'+processing_type+'/'
+split_path='/media/Data_/flipvanrijn/datasets/coco/processed/'+processing_type+'/splits/'
 
 def load_sparse_csr(filename):
     loader = numpy.load(filename)
@@ -132,7 +132,7 @@ def main():
         data_cap = []
         data_ctx = [None] * len(flist)
         bar = Bar('Processing...', max=len(flist))
-        for idx, fname in enumerate(flist[:1000]):
+        for idx, fname in enumerate(flist):
             # save a sparse matrix
             data_img[idx] = features_sp[featdict[fname],:]
             data_ctx[idx] = features_ctx[featdict[fname],:]
