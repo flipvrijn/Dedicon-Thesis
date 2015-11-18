@@ -32,7 +32,7 @@
 				<div class="row">
 					<div class="col-md-3">
 						{% if hypotheses_files %}
-						<select class="form-control">
+						<select name="hypotheses_file" class="form-control">
 							{% for file in hypotheses_files %}
 							<option>{{ file }}</option>
 							{% endfor %}
@@ -105,7 +105,11 @@
 					{% if outer_loop.index0 == col_max[loop.index0] %}
 						<strong>{{ value if value }}</strong>
 					{% else %}
-						{{ value if value }}
+						{% if value %}
+							{{ value }}
+						{% else %}
+							&#8212;
+						{% endif %}
 					{% endif %}
 				</td>
 				{% endfor %}

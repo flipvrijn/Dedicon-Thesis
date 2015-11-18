@@ -4,6 +4,7 @@ import json
 import os.path
 import os
 import time
+import datetime
 import utils
 import numpy as np
 import shutil
@@ -90,9 +91,11 @@ def status_training():
             one_training = True
         with open(f) as handler:
             status = json.load(handler)
-        training_time = time.time() - status['time_created'] if training else \
-                        status['time_modified'] - status['time_created']
-        training_time = time.strftime('%H:%M:%S', time.gmtime(training_time))
+        print f
+        dt_created = datetime.datetime.fromtimestamp(status['time_created'])
+        dt_modified = datetime.datetime.now() if training else \
+                      datetime.datetime.fromtimestamp(status['time_modified'])
+        training_time = utils.format_duration(dt_modified - dt_created)
         status_files[name] = {
             'status': status['status'],
             'status_text': building_status_to_text[status['status']][0],
@@ -158,12 +161,11 @@ def metrics():
     if request.method == 'POST':
         metrics = request.form['metrics'].split(',')
 
-        hypotheses_file = request.files['hypotheses_file']
+        hypotheses_file = request.form['hypotheses_file']
         references_file = request.files['references_file']
         if hypotheses_file and references_file:
-            hypotheses_dest_path = os.path.join(app.config['UPLOAD_FOLDER'], '{}.{}'.format(time.time(), hypotheses_file.filename))
+            hypotheses_dest_path = hypotheses_file
             references_dest_path = os.path.join(app.config['UPLOAD_FOLDER'], '{}.{}'.format(time.time(), references_file.filename))
-            hypotheses_file.save(hypotheses_dest_path)
             references_file.save(references_dest_path)
 
         with open(hypotheses_dest_path, 'r') as hypotheses, open(references_dest_path, 'r') as references:

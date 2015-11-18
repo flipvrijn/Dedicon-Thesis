@@ -8,7 +8,7 @@ Vstatic/images
 p4
 sVMODELS_FOLDER
 p5
-V/media/Data/flipvanrijn/models
+V/media/Data_/flipvanrijn/models
 p6
 sS'SESSION_COOKIE_PATH'
 p7
@@ -41,7 +41,7 @@ p19
 I00
 sS'DATA_FOLDER'
 p20
-V/media/Data/flipvanrijn/datasets/coco/processed/full
+V/media/Data_/flipvanrijn/datasets/coco/processed/full
 p21
 sS'SESSION_COOKIE_SECURE'
 p22
@@ -79,7 +79,7 @@ p34
 I01
 sVIMAGES_FOLDER
 p35
-V/media/Data/flipvanrijn/datasets/coco/images
+V/media/Data_/flipvanrijn/datasets/coco/images
 p36
 sS'TRAP_HTTP_EXCEPTIONS'
 p37

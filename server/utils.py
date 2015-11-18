@@ -23,9 +23,11 @@ from pycocoevalcap.rouge.rouge import Rouge
 from pycocoevalcap.cider.cider import Cider
 from pycocoevalcap.meteor.meteor import Meteor
 
-models_directory = '/media/Data/flipvanrijn/models'
+from serve import config
+
+models_directory = config['MODELS_FOLDER']
 network_directory = '../models/attention'
-context_file = '/media/Data/flipvanrijn/datasets/coco/sents_train.h5'
+context_file = '{}/../sents_train.h5'.format(config['IMAGES_FOLDER'])
 
 def scores(hypo, refs, metrics):
     ''' Returns all requested scores '''
@@ -53,6 +55,11 @@ def scores(hypo, refs, metrics):
             final_scores[metric] = score
     return final_scores
 
+def format_duration(tdelta):
+    ''' Formats a timedelta object into hours:minutes:seconds where hours can be more than 24. '''
+    hours, rem = divmod(tdelta.total_seconds(), 3600)
+    minutes, seconds = divmod(rem, 60)
+    return '%d:%02d:%02d' % (hours, minutes, seconds)
 
 def context_stats():
     handler = h5py.File(context_file, 'r')
