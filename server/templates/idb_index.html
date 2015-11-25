@@ -1,0 +1,29 @@
+{% extends 'layout.html' %}
+{% block body %}
+	<h1>Overzicht van boeken</h1>
+
+	<p>Een overzicht van alle boeken in de iDB.</p>
+
+	{% if not rows %}
+		<p class="text-info">Op dit moment staat er niks in de database.</p>
+	{% else %}
+		<table class="table">
+			<tr>
+				<th>LoisID</th>
+				<th># plaatjes</th>
+				<th># plaatjes met caption</th>
+				<th># gevalideerd</th>
+				<th># goedgekeurd</th>
+			</tr>
+			{% for row in rows %}
+			<tr>
+				<td><a href="idb/validate/{{ row[0] }}">{{ row[0] }}</a></td>
+				<td>{{ row[1] }}</td>
+				<td>{{ row[2] }}</td>
+				<td>{{ row[3] }}</td>
+				<td>{{ row[4] }}</td>
+			</tr>
+			{% endfor %}
+		</table>
+	{% endif %}
+{% endblock %}

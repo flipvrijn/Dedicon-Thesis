@@ -1,6 +1,7 @@
 body {
 	/* To compensate for the navbar that is 50px heigh */
 	padding-top: 50px; 
+  font-size: 175%;
 }
 
 /*

@@ -9,6 +9,7 @@ import utils
 import numpy as np
 import shutil
 import pandas as pd
+import sqlite3
 
 import flask
 from flask import Flask, render_template, request, url_for, redirect
@@ -17,10 +18,18 @@ from werkzeug import secure_filename
 
 from collections import OrderedDict
 
+from IPython import embed
+
+# Append files to path
+import sys
+sys.path.append('../models/attention') # ... for 'monitor.py'
+
+# Load config file
 config_file = 'config.pkl'
 with open(config_file) as f_config:
     config = cPickle.load(f_config)
 
+# Start Flask
 app = Flask(__name__)
 app.config.update(config)
 
@@ -35,6 +44,10 @@ nav.Bar('top', [
     ]),
     nav.Item('Dataset', 'dataset', url='#', items=[
         nav.Item('Context valideren', 'context'),
+    ]),
+    nav.Item('iDB', 'idb', url='#', items=[
+        nav.Item('Overzicht', 'idb_index'),
+        nav.Item('Boek parseren', 'parse_book'),
     ]),
     nav.Item('Opties', 'options')
 ])
@@ -76,14 +89,19 @@ def overview_models():
 
     return render_template('models.html', models=models)
 
+# ----------------------------------------------------------
+# -----------------------Manage model training--------------
+# ----------------------------------------------------------
+
 @app.route('/overview/status')
 def status_training():
     ''' Shows the status of a training model '''
     status_files = OrderedDict()
-    files = glob.glob('{}/*_status.json'.format(app.config['MODELS_FOLDER']))
+    files = glob.glob('{}/*.npz_status.json'.format(app.config['MODELS_FOLDER']))
     files.sort(key=lambda x: os.stat(x).st_mtime, reverse=True)
     one_training = False
     for f in files:
+        print f
         filename = os.path.split(f)[1]
         name     = filename.split('_status')[0]
         training = utils.check_model_training(name)
@@ -91,7 +109,6 @@ def status_training():
             one_training = True
         with open(f) as handler:
             status = json.load(handler)
-        print f
         dt_created = datetime.datetime.fromtimestamp(status['time_created'])
         dt_modified = datetime.datetime.now() if training else \
                       datetime.datetime.fromtimestamp(status['time_modified'])
@@ -112,12 +129,12 @@ def status_training():
 
     return render_template('status.html', files=status_files, one_training=one_training)
 
-@app.route('/training/start/<name>')
-def start_training(name):
+@app.route('/training/start/<name>/<type>')
+def start_training(name, model_type):
     ''' Starts a model for training '''
     print 'Starting the model {}'.format(name)
-    if not utils.training_model_name():
-        status = utils.start_training(name)
+    if not utils.training_model_name() and model_type in ['t_attn', 'normal']:
+        status = utils.start_training(name, model_type)
 
     return redirect(url_for('status_training'))
 
@@ -137,6 +154,10 @@ def stop_training(name):
         json.dump(content, open(status_file, 'w'))
 
     return redirect(url_for('status_training'))
+
+# ----------------------------------------------------------
+# ----------------------Compute metrics---------------------
+# ----------------------------------------------------------
 
 @app.route('/model/metrics/save', methods=['POST'])
 def save_metrics():
@@ -198,6 +219,10 @@ def generate_captions(name):
 
     return flask.jsonify(**{'status': status})
 
+# ----------------------------------------------------------
+# --------------------Validate COCO context-----------------
+# ----------------------------------------------------------
+
 @app.route('/context/next')
 def context_next():
     data = utils.context_next()
@@ -212,12 +237,9 @@ def validate_context(id, valid):
     valid = bool(int(valid))
     id    = int(id)
 
-    print 'validating ' + str(id)
     utils.context_validate(id, valid)
 
     data = utils.context_next()
-
-    print 'sending out ' + str(data['idx'])
 
     # Copy image to static folder
     shutil.copy(os.path.join(app.config['IMAGES_FOLDER'], 'train', data['img']), os.path.join(app.config['UPLOAD_FOLDER'], 'context_image.jpg'))
@@ -239,6 +261,10 @@ def context():
 
     return render_template('context.html', stats=stats, data=data)
 
+# ----------------------------------------------------------
+# ---------------------Option page--------------------------
+# ----------------------------------------------------------
+
 @app.route('/options', methods=['GET', 'POST'])
 def options():
     ''' Edits the server options '''
@@ -248,6 +274,8 @@ def options():
         config['DATA_FOLDER']   = request.form['data_folder']
         config['IMAGES_FOLDER'] = request.form['images_folder']
         config['MODELS_FOLDER'] = request.form['models_folder']
+        config['IDB_FOLDER']    = request.form['idb_folder']
+        config['IDB_FILE']      = request.form['idb_file']
         config['DEBUG']         = bool(int(request.form['debug']))
 
         app.config.update(config)
@@ -256,6 +284,10 @@ def options():
             cPickle.dump(dict(app.config.items()), f_config)
 
     return render_template('options.html')
+
+# ----------------------------------------------------------
+# ----------------------Manage models-----------------------
+# ----------------------------------------------------------
 
 @app.route('/model/start/<name>')
 def start_model(name):
@@ -280,6 +312,17 @@ def stop_model(name):
 
     return flask.jsonify(**{'status': status})
 
+@app.route('/model/status/<name>')
+def status_model(name):
+    ''' Returns the status of the model during startup '''
+    status = utils.status_model(name)
+
+    return flask.jsonify(**{'status': status, 'status_text': running_status_to_text[status]})
+
+# ----------------------------------------------------------
+# -------------------Interact with model--------------------
+# ----------------------------------------------------------
+
 @app.route('/model/test')
 def test_model():
     ''' Renders page for testing the model '''
@@ -292,13 +335,6 @@ def test_model():
         status_text = None
 
     return render_template('test.html', name=name, status=status, status_text=status_text)
-
-@app.route('/model/status/<name>')
-def status_model(name):
-    ''' Returns the status of the model during startup '''
-    status = utils.status_model(name)
-
-    return flask.jsonify(**{'status': status, 'status_text': running_status_to_text[status]})
 
 @app.route('/image/random/<introspect>')
 def random_image(introspect):
@@ -357,6 +393,58 @@ def attention_image(image):
         print 'Querying model failed: ' + str(e)
 
         return flask.jsonify(**{'error': str(e)})
+
+# ----------------------------------------------------------
+# ---------------------Image DB interaction-----------------
+# ----------------------------------------------------------
+@app.route('/idb')
+def idb_index():
+    conn = sqlite3.connect(config['IDB_FILE'])
+    cur  = conn.cursor()
+
+    cur.execute("SELECT lois_id, COUNT(*), COUNT(*) - COUNT(caption), SUM(validated), SUM(valid) FROM images GROUP BY lois_id")
+    rows = cur.fetchall()
+
+    conn.close()
+
+    return render_template('idb_index.html', rows=rows)
+
+@app.route('/idb/parse', methods=['GET', 'POST'])
+def parse_book():
+    if request.method == 'POST':
+        book_file = request.files['book']
+        book_dest_path = os.path.join(app.config['IDB_FOLDER'], 'temp', '{}-{}.{}'.format(book_file.filename.split('.')[0], time.time(), book_file.filename.split('.')[1]))
+        book_file.save(book_dest_path)
+
+        utils.start_book_parser(book_dest_path)
+
+    return render_template('idb_parse_book.html')
+
+@app.route('/idb/validate/<loisID>', methods=['GET', 'POST'])
+def idb_validate_book(loisID):
+    conn = sqlite3.connect(config['IDB_FILE'])
+    cur  = conn.cursor()
+
+    # Update the record
+    if request.method == 'POST':
+        valid = 1 if 'btn_yes' in request.form else 0
+        caption = request.form['caption']
+        row_id = request.form['id']
+        cur.execute("UPDATE images SET caption = ?, valid = ?, validated = 1 WHERE id = ?", (caption, valid, row_id))
+        conn.commit()
+
+    # Select first entry that has not been validated yet for this loisID
+    cur.execute("SELECT * FROM images WHERE lois_id = ? AND validated = 0 LIMIT 1", (loisID,))
+    row = cur.fetchone()
+
+    conn.close()
+
+    # Copy image to uploads
+    source_img = os.path.join(config['IDB_FOLDER'], 'images', row[2])
+    dest_img   = os.path.join(config['UPLOAD_FOLDER'], row[2])
+    shutil.copy(source_img, dest_img)
+
+    return render_template('idb_validate_book.html', row=row)
 
 if __name__ == '__main__':
     app.run()

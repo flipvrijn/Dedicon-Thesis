@@ -35,6 +35,23 @@
 			</div>
 		</fieldset>
 		<fieldset>
+			<legend>iDB instellingen</legend>
+			<div class="form-group">
+				<label class="col-lg-2 control-label">Folder</label>
+				<div class="col-lg-10">
+					<input type="text" name="idb_folder" class="form-control" value="{{ config['IDB_FOLDER'] }}"></input>
+					<p class="help-block">Het pad naar de image database.</p>
+				</div>
+			</div>
+			<div class="form-group">
+				<label class="col-lg-2 control-label">Database bestand</label>
+				<div class="col-lg-10">
+					<input type="text" name="idb_file" class="form-control" value="{{ config['IDB_FILE'] }}"></input>
+					<p class="help-block">Het pad naar het image database bestand.</p>
+				</div>
+			</div>
+		</fieldset>
+		<fieldset>
 			<legend>Overig</legend>
 			<div class="form-group">
 				<label class="col-lg-2 control-label">Debug modus server</label>

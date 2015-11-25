@@ -23,10 +23,10 @@ import skimage.util
 
 from PIL import Image
 
+from IPython import embed
+
 import sys
 sys.path.insert(0, '/home/flipvanrijn/Workspace/Dedicon-Thesis/models/attention/')
-
-import capgen
 
 class ImageServer(SocketServer.ThreadingTCPServer):
     def __init__(self, server_address, RequestHandlerClass, args):
@@ -37,6 +37,9 @@ class ImageServer(SocketServer.ThreadingTCPServer):
 
         print 'Loading options...'
         self._load_options()
+
+        self._load_capgen()
+
         print 'Loading dictionary...'
         self._load_worddict()
         print 'Loading CNN...'
@@ -63,6 +66,14 @@ class ImageServer(SocketServer.ThreadingTCPServer):
 
         with open(self.options_file, 'rb') as f:
             self.options = pkl.load(f)
+
+    def _load_capgen(self):
+        if 'tex_dim' in self.options:
+            import capgen_text as capgen
+            self.capgen = capgen
+        else:
+            import capgen
+            self.capgen = capgen
 
     def _load_worddict(self):
         self._update_status(2)
@@ -109,15 +120,19 @@ class ImageServer(SocketServer.ThreadingTCPServer):
         self.trng    = RandomStreams(1234)
         use_noise    = theano.shared(np.float32(0.), name='use_noise')
 
-        params       = capgen.init_params(self.options)
-        params       = capgen.load_params(self.model, params)
-        self.tparams = capgen.init_tparams(params)
+        params       = self.capgen.init_params(self.options)
+        params       = self.capgen.load_params(self.model, params)
+        self.tparams = self.capgen.init_tparams(params)
 
         # word index
-        self.f_init, self.f_next                = capgen.build_sampler(self.tparams, self.options, use_noise, self.trng)
+        self.f_init, self.f_next                = self.capgen.build_sampler(self.tparams, self.options, use_noise, self.trng)
 
-        self.trng, use_noise, inps, \
-        alphas, alphas_samples, cost, opt_outs  = capgen.build_model(self.tparams, self.options)
+        if 'tex_dim' in self.options:
+            self.trng, use_noise, inps, \
+            alphas, alphas_samples, taus, taus_sample, cost, opt_outs  = self.capgen.build_model(self.tparams, self.options)
+        else:
+            self.trng, use_noise, inps, \
+            alphas, alphas_samples, cost, opt_outs  = self.capgen.build_model(self.tparams, self.options)
 
         # get the alphas and selector value [called \beta in the paper]
 
@@ -132,6 +147,11 @@ class ImageServer(SocketServer.ThreadingTCPServer):
         if self.options['selector']:
             self.f_sels = theano.function(inps, opt_outs['selector'], name='f_sels', updates=hard_attn_updates)
 
+        if 'tex_dim' in self.options:
+            self.f_tau = theano.function(inps, taus, name='f_tau', updates=hard_attn_updates)
+            if self.options['selector']:
+                self.f_selts = theano.function(inps, opt_outs['selectort'], name='f_selts', updates=hard_attn_updates)
+
     def preprocess(self, img):
         img  = img.copy()
 
@@ -141,11 +161,17 @@ class ImageServer(SocketServer.ThreadingTCPServer):
         data -= mean
         data = data[(2, 1, 0), :, :]
 
-        out = self._cnn.forward_all(blobs=['conv5_4'], **{'data': data})
-        context = self._cnn.blobs['conv5_4'].data
-        context = context.transpose((0, 2, 3, 1))
+        return data
 
-        return context.reshape([14*14, 512])
+    def forward_img(self, data):
+        cnn_in = np.zeros((1, 3, 224, 224), dtype=np.float32)
+        cnn_in[0, :] = data
+
+        out = self._cnn.forward_all(blobs=['conv5_4'], **{'data': cnn_in})
+        img_context = self._cnn.blobs['conv5_4'].data
+        img_context = img_context.transpose((0, 2, 3, 1))
+
+        return img_context[0].reshape([196, 512])
 
 class ImageHandler(SocketServer.BaseRequestHandler):
 
@@ -169,9 +195,10 @@ class ImageHandler(SocketServer.BaseRequestHandler):
         '''
         Expects: pickled({
             pixels: bytestring,
-            mode: RGB,
+            mode: string 'RGB',
             size: tuple,
             file_path: string,
+            text_context: numpy array,
         })
         '''
         data = self.recv_msg() # raw pickled data
@@ -183,24 +210,31 @@ class ImageHandler(SocketServer.BaseRequestHandler):
         reconstructed_img = Image.frombytes(unpickled['mode'], unpickled['size'], unpickled['pixels'])
         img = self.server.load_image(reconstructed_img)
         # Context of the model
-        context = self.server.preprocess(img)
+        img_preprocessed = self.server.preprocess(img)
+        img_context  = self.server.forward_img(img_preprocessed)
+        if 'tex_dim' in self.server.options:
+            text_context = unpickled['text_context']
 
-        sample, score = capgen.gen_sample(self.server.tparams, self.server.f_init, self.server.f_next, context, 
-                                          self.server.options, trng=self.server.trng, k=1, maxlen=200, stochastic=False)
+            sample, score = self.server.capgen.gen_sample(self.server.tparams, self.server.f_init, self.server.f_next, img_context, text_context, 
+                                              self.server.options, trng=self.server.trng, k=1, maxlen=200, stochastic=False)
+        else:
+            sample, score = self.server.capgen.gen_sample(self.server.tparams, self.server.f_init, self.server.f_next, img_context, 
+                                              self.server.options, trng=self.server.trng, k=1, maxlen=200, stochastic=False)
         sidx = np.argmin(score)
         caption = sample[sidx][:-1]
 
         words = map(lambda w: self.server.word_idict[w] if w in self.server.word_idict else '<UNK>', caption)
 
         if introspect:
+            embed()
             # Generate the alpha images, e.g. what the model 'sees'
             alpha = self.server.f_alpha(np.array(caption).reshape(len(caption),1), 
                 np.ones((len(caption),1), dtype='float32'), 
-                context.reshape(1,context.shape[0],context.shape[1]))
+                img_context.reshape(1,img_context.shape[0],img_context.shape[1]))
             if self.server.options['selector']:
                 sels = self.server.f_sels(np.array(caption).reshape(len(caption),1), 
                         np.ones((len(caption),1), dtype='float32'), 
-                        context.reshape(1,context.shape[0],context.shape[1]))
+                        img_context.reshape(1,img_context.shape[0],img_context.shape[1]))
 
             filename = os.path.split(file_path)[1]
             img = img.astype('uint8')

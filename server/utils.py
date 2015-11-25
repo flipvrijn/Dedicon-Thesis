@@ -144,7 +144,7 @@ def check_model_training(name):
     for process in psutil.process_iter():
         try:
             cmd = ' '.join(process.cmdline())
-            if 'python2.7' in process.name() and 'evaluate_coco.py' in cmd and name in cmd:
+            if 'python2.7' in process.name() and 'eval.py' in cmd and name in cmd:
                 return True
         except psutil.Error:
             pass
@@ -190,7 +190,7 @@ def training_model_name():
     for process in psutil.process_iter():
         try:
             cmd = ' '.join(process.cmdline())
-            if 'python2.7' in process.name() and 'evaluate_coco.py' in cmd and '.npz' in cmd:
+            if 'python2.7' in process.name() and 'eval.py' in cmd and '.npz' in cmd:
                 pattern = re.compile('\s(.*?\.npz)')
                 match   = pattern.search(cmd)
                 if match:
@@ -240,11 +240,16 @@ def stop_model(name):
             pass
     return False
 
-def start_training(name):
+def start_training(name, model_type):
     ''' Starts the trainer for a model '''
     try:
         def run_trainer():
-            cmd = ['python2.7', os.path.join(network_directory, 'evaluate_coco.py'), models_directory, name]
+            cmd = ['python2.7', 
+                os.path.join(network_directory, 'eval.py'), 
+                config['DATA_FOLDER'],
+                models_directory, 
+                name, 
+                '--type={}'.format(model_type)]
             subprocess.Popen(cmd)
         thread.start_new_thread(run_trainer, ())
 
@@ -257,7 +262,7 @@ def stop_training(name):
     for process in psutil.process_iter():
         try:
             cmd = ' '.join(process.cmdline())
-            if 'python2.7' in process.name() and 'evaluate_coco.py' in cmd and name in cmd:
+            if 'python2.7' in process.name() and 'eval.py' in cmd and name in cmd:
                 process.kill()
 
                 return True
@@ -314,13 +319,13 @@ def query_model(image_path, introspect):
 def generate_caps(name, saveto):
     ''' Starts generator for caps of dataset '''
     try:
-        def run_trainer():
+        def gen_caps():
             cmd = ['python2.7', 
                 os.path.join(network_directory, 'generate_caps.py'), 
                 os.path.join(models_directory, name),   # model input
                 saveto]                                 # saveto
             subprocess.Popen(cmd)
-        thread.start_new_thread(run_trainer, ())
+        thread.start_new_thread(gen_caps, ())
 
         return True
     except:
@@ -337,3 +342,19 @@ def generating_caps():
             pass
 
     return False
+
+def start_book_parser(path):
+    ''' Starts the book parser to extract images and captions '''
+    try:
+        def parse_book():
+            cmd = ['python2.7', 
+                os.path.join('parse_book.py'), 
+                path,
+                '--temp={}'.format(os.path.join(config['IDB_FOLDER'], 'temp')),
+                '--db_file={}'.format(os.path.join(config['IDB_FOLDER'], config['IDB_FILE']))]
+            subprocess.Popen(cmd)
+        thread.start_new_thread(parse_book, ())
+
+        return True
+    except:
+        return False

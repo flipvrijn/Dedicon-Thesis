@@ -55,6 +55,11 @@ $(function() {
 		}
 	});
 
+	// Mouseover samples tabs
+	$('body').on('mouseover', '.samples-tab a', function() {
+		$(this).tab('show');
+	});
+
 	// ---------------- Test model ----------------
 
 	function handle_image_response(response) {

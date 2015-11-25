@@ -17,11 +17,11 @@
 			<th>Epoch</th>
 			<th>Tijd</th>
 			<th>Kost</th>
-			<th>Sample</th>
-			<th>Vroegtijdig gestopt</th>
+			<th>Samples</th>
 			<th>Actie</th>
 		</tr>
 		{% for filename, data in files.items() %}
+		{% set fileloop = loop %}
 		<tr class="{{ data['class'] }}">
 			<td>{{ filename }}</td>
 			<td>
@@ -35,14 +35,25 @@
 				<td>{{ data['training_time'] }}</td>
 				<td><span class="sparkline">{{ data['costs'] }}</span></td>
 				<td>
-					<dl>
-					{% for sample, truth in data['samples'] %}
-						<dt>Referentie: '{{ truth }}'</dt>
-						<dd>Gegenereerd: '{{ sample }}'</dd>
-					{% endfor %}
-					</dl>
+					<ul class="nav nav-tabs" role="tablist">
+						{% for sample in data['samples'] %}
+						<li role="presentation" class="samples-tab {{ 'active' if loop.index == 1 else '' }}">
+							<a href="#t{{ fileloop.index }}{{ loop.index }}" aria-controls="t{{ fileloop.index }}{{ loop.index }}" role="tab" data-toggle="tab">{{ loop.index }}</a>
+						</li>
+						{% endfor %}
+					</ul>
+
+					<div class="tab-content">
+						{% for sample, truth in data['samples'] %}
+						<div class="tab-pane {{ 'active' if loop.index == 1 else '' }}" id="t{{ fileloop.index }}{{ loop.index }}">
+							<ul class="list-unstyled">
+								<li><strong>Referentie: {{ truth }}</strong></li>
+								<li>Omschrijving: {{ sample }}</li>
+							</ul>
+						</div>
+						{% endfor %}
+					</div>
 				</td>
-				<td>{{ 'ja' if data['early_stop'] else 'nee' }}</td>
 				<td>
 					{% if data['training'] %}
 					<a href="/training/stop/{{ filename }}" class="btn btn-danger stop-training">
@@ -51,11 +62,10 @@
 					{% endif %}
 				</td>
 			{% else %}
-				<td></td>
-				<td></td>
-				<td></td>
-				<td></td>
-				<td></td>
+				<td>&#8212;</td> <!-- Epoch -->
+				<td>&#8212;</td> <!-- Time -->
+				<td>&#8212;</td> <!-- Costs graph -->
+				<td>&#8212;</td> <!-- Sample -->
 				<td>
 					{% if data['training'] %}
 					<a href="/training/stop/{{ filename }}" class="btn btn-danger stop-training">
@@ -79,8 +89,16 @@
 	      <div class="modal-body">
 	        <form class="form">
 	        	<div class="form-group">
+	        		<label class="control-label">Type model</label>
+	        		<select name="type" class="form-control">
+	        			<option value="normal">Zonder context</option>
+	        			<option value="t_attn">Met context</option>
+	        		</select>
+	        	</div>
+	        	<div class="form-group">
+	        		<label class="control-label">Model naam</label>
 	        		<div class="input-group">
-	        			<input type="text" class="form-control" name="model_name" placeholder="Model naam">
+	        			<input type="text" class="form-control" name="model_name" placeholder="Naam">
 	        			<span class="input-group-addon">.npz</span>
 	        		</div>
 	        	</div>

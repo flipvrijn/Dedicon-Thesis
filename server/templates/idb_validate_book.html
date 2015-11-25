@@ -1,0 +1,29 @@
+{% extends 'layout.html' %}
+{% block body %}
+	<h1>Captions valideren</h1>
+
+	<p>Met onderstaande tool kan deze captions handmatig gevalideerd worden.</p>
+	<div id="caption-wrapper" class="row">
+		<div class="col-sm-6 col-md-4 col-md-offset-3">
+			<div class="thumbnail">
+				<img src="/static/images/{{ row[2] }}" id="caption-image">
+				<form method="POST">
+					<input type="hidden" name="id" value="{{ row[0] }}">
+					<div class="form-group">
+						<label class="control-label">Omschrijving</label>
+						<textarea name="caption" class="form-control">{{ row[3] if row[3] else '' }}</textarea>
+					</div>
+					<div class="row">
+						<div class="col-md-6">
+							<input type="submit" name="btn_yes" class="btn btn-success" value="Goedkeuren" />
+						</div>
+						<div class="col-md-6">
+							<input type="submit" name="btn_no" class="btn btn-danger" value="Afkeuren" />
+						</div>
+					</div>
+				</form>
+			</div>
+		</div>
+	</div>
+	
+{% endblock %}
