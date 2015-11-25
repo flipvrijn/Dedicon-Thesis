@@ -3,6 +3,7 @@ from scipy.sparse import csr_matrix
 from itertools import compress
 import json
 import cPickle
+import argparse
 
 from progress.bar import Bar
 from nltk.tokenize import wordpunct_tokenize
@@ -32,25 +33,26 @@ def save_split(file_name, lst):
         for l in lst:
             print>>f, l
 
-def main():
-    split               = 'val'
-    contexts_file       = '/media/Data_/flipvanrijn/datasets/coco/processed/full/'+split+'_context.npz'
-    images_file         = '/media/Data_/flipvanrijn/datasets/coco/processed/full/'+split+'2014list.txt'
-    all_images_file     = ['/media/Data_/flipvanrijn/datasets/coco/processed/reduced/train2014list.txt', '/media/Data/flipvanrijn/datasets/coco/processed/reduced/val2014list.txt']
-    captions_file       = '/media/Data_/flipvanrijn/datasets/coco/processed/full/captions_'+split+'2014.json'
-    raw_context_file    = '/media/Data_/flipvanrijn/datasets/coco/processed/full/coco_'+split+'_context.pkl'
-    image_feats         = '/media/Data_/flipvanrijn/datasets/coco/processed/full/features_'+split+'_conv5_4.npz'
-    output_dir          = '/media/Data_/flipvanrijn/datasets/coco/processed/reduced'
-    splits_dir          = '/media/Data_/flipvanrijn/datasets/coco/processed/full/splits'
+def main(args):
+    split               = args.split
+    data_dir            = args.data_dir.rstrip('/')
+    contexts_file       = '{}/{}_context.npz'.format(data_dir, split)
+    images_file         = '/media/Data/flipvanrijn/datasets/coco/processed/full/'+split+'2014list.txt'
+    all_images_file     = ['/media/Data/flipvanrijn/datasets/coco/processed/reduced/train2014list.txt', '/media/Data/flipvanrijn/datasets/coco/processed/reduced/val2014list.txt']
+    captions_file       = '/media/Data/flipvanrijn/datasets/coco/processed/full/captions_'+split+'2014.json'
+    raw_context_file    = '{}/../coco_{}_context.pkl'.format(data_dir, split)
+    image_feats         = '/media/Data/flipvanrijn/datasets/coco/processed/full/features_'+split+'_conv5_4.npz'
+    output_dir          = args.out_dir
+    splits_dir          = '/media/Data/flipvanrijn/datasets/coco/processed/full/splits'
 
     # Enable / Disable reductions
     flags = {
-        'context': True,
-        'images_list': False,
-        'captions': False,
-        'raw_context': False,
-        'image_feats': False,
-        'splits': False,
+        'context': args.co,        # --co
+        'images_list': args.il,   # --il
+        'captions': args.ca,      # --ca
+        'raw_context': args.cr,   # --cr
+        'image_feats': args.imf,   # --if
+        'splits': args.sp,        # --sp
     }
 
     # Loading context info
@@ -168,4 +170,15 @@ def main():
         save_split('{}/splits/coco_val.txt'.format(output_dir), dev_f)
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('split', help='split', choices=['val', 'train'])
+    parser.add_argument('data_dir', help='data directory')
+    parser.add_argument('out_dir', help='output directory')
+    parser.add_argument("--co", help="enable context reduction", action='store_true')
+    parser.add_argument('--il', help='enable image list reduction', action='store_true')
+    parser.add_argument('--ca', help='enable captions reduction', action='store_true')
+    parser.add_argument('--cr', help='enable raw context reduction', action='store_true')
+    parser.add_argument('--if', dest='imf', help='enable image features reduction', action='store_true')
+    parser.add_argument('--sp', help='enable split reduction', action='store_true')
+    args = parser.parse_args()
+    main(args)

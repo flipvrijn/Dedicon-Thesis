@@ -18,7 +18,7 @@ from IPython import embed
 
 # From author Kelvin Xu:
 # https://github.com/kelvinxu/arctic-captions/blob/master/alpha_visualization.ipynb
-def load_image(filename, cnn_mean, resize=256, crop=224):
+def load_image(filename, resize=256, crop=224):
     image = Image.open(filename)
     width, height = image.size
 
@@ -73,7 +73,7 @@ def main(args):
                 cnn_in = np.zeros((args.batch_size, 3, 224, 224), dtype=np.float32)
                 for img_idx, img in enumerate(image_files):
                     try:
-                        cnn_in[img_idx, :] = load_image('{}/{}/{}'.format(image_path, split_name, img), args.mean)
+                        cnn_in[img_idx, :] = load_image('{}/{}/{}'.format(image_path, split_name, img))
                     except:
                         # Image is corrupt or missing
                         failed_images.append('{}/{}'.format(split_name, img))

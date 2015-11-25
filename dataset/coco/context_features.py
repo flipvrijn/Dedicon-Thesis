@@ -41,8 +41,8 @@ def preprocess(s, model):
     
     ns = []
     for w in s:
-        if w and w in model and w not in stop:
-            #w = stemmer.stem(w)
+        if w and w in model:# and w not in stop:
+            w = stemmer.stem(w)
             ns.append(w)
 
     return ns
@@ -57,15 +57,16 @@ def main(args):
         tags = cPickle.load(f)
 
     # Load Word2Vec model
-    print 'Loading sent2vec model...'
+    print 'Loading word2vec model...'
     t_model_start = time.time()
-    model = Word2Vec.load_word2vec_format('/media/Data_/flipvanrijn/models/word2vec/enwiki-latest-pages.512.bin', binary=True)
+    model = Word2Vec.load_word2vec_format('/media/Data/flipvanrijn/models/word2vec/enwiki-latest-pages.512.bin', binary=True)
     print 'Loaded in {}s'.format(time.time() - t_model_start)
 
     # Create feature vectors of context and only keep images WITH context
     mask = []
     bar = Bar('Extracting features...', max=len(titles))
     context_filtered = []
+    lengths = []
     for i in xrange(len(titles)):
         # Stem words and remove stopwords for title...
         context = []
@@ -91,8 +92,11 @@ def main(args):
             mask.append(0)
 
         context_filtered.append(X)
+        lengths.append(len(X))
         bar.next()
     bar.finish()
+
+    embed()
 
     out = {
         'data': context_filtered,
@@ -108,8 +112,6 @@ if __name__ == '__main__':
     parser.add_argument('out_file', help='Output file', type=str)
     parser.add_argument('-w', help='Sliding window size', type=int, default=3)
     parser.add_argument('--w2v', dest='w2v', help='Word2Vec model', type=str)
-    parser.add_argument('--max_size', dest='n', help='Max features', type=int, default=100)
-    parser.add_argument('--thresh', dest='thresh', help='Minimum number of relevant words', type=int, default=0)
 
     args = parser.parse_args()
 
