@@ -29,6 +29,7 @@ import sys
 sys.path.insert(0, '/home/flipvanrijn/Workspace/Dedicon-Thesis/models/attention/')
 
 class ImageServer(SocketServer.ThreadingTCPServer):
+    ''' Generates a caption from an image '''
     def __init__(self, server_address, RequestHandlerClass, args):
         SocketServer.ThreadingTCPServer.__init__(self,server_address, RequestHandlerClass)
         
@@ -62,12 +63,14 @@ class ImageServer(SocketServer.ThreadingTCPServer):
         json.dump({'status': status}, open('{}_runningstatus.json'.format(self.model), 'w'))
 
     def _load_options(self):
+        ''' Loads the options of the caption model '''
         self._update_status(1)
 
         with open(self.options_file, 'rb') as f:
             self.options = pkl.load(f)
 
     def _load_capgen(self):
+        ''' Loads the caption generator version dependent on whether to use textual context or not '''
         if 'tex_dim' in self.options:
             import capgen_text as capgen
             self.capgen = capgen
@@ -76,6 +79,7 @@ class ImageServer(SocketServer.ThreadingTCPServer):
             self.capgen = capgen
 
     def _load_worddict(self):
+        ''' Load the worddict '''
         self._update_status(2)
 
         with open('/media/Data/flipvanrijn/datasets/coco/processed/full/dictionary.pkl', 'rb') as f:
@@ -89,7 +93,8 @@ class ImageServer(SocketServer.ThreadingTCPServer):
 
     # From author Kelvin Xu:
     # https://github.com/kelvinxu/arctic-captions/blob/master/alpha_visualization.ipynb
-    def load_image(self, image, resize=256, crop=224):
+    def resize_image(self, image, resize=256, crop=224):
+        ''' Resizes and crops the  image '''
         width, height = image.size
 
         if width > height:
@@ -106,6 +111,7 @@ class ImageServer(SocketServer.ThreadingTCPServer):
         return data
 
     def _load_cnn(self):
+        ''' Loads the CNN for image encoding '''
         self._update_status(3)
 
         caffe.set_mode_gpu()
@@ -114,6 +120,7 @@ class ImageServer(SocketServer.ThreadingTCPServer):
         self._cnn.blobs['data'].reshape(1, 3, 224, 224)
 
     def _build(self):
+        ''' Builds the caption functions '''
         self._update_status(4)
 
         # build the sampling functions and model
@@ -131,10 +138,9 @@ class ImageServer(SocketServer.ThreadingTCPServer):
             self.trng, use_noise, inps, \
             alphas, alphas_samples, taus, taus_sample, cost, opt_outs  = self.capgen.build_model(self.tparams, self.options)
         else:
+            # get the alphas and selector value [called \beta in the paper]
             self.trng, use_noise, inps, \
             alphas, alphas_samples, cost, opt_outs  = self.capgen.build_model(self.tparams, self.options)
-
-        # get the alphas and selector value [called \beta in the paper]
 
         # create update rules for the stochastic attention
         hard_attn_updates = []
@@ -153,6 +159,7 @@ class ImageServer(SocketServer.ThreadingTCPServer):
                 self.f_selts = theano.function(inps, opt_outs['selectort'], name='f_selts', updates=hard_attn_updates)
 
     def preprocess(self, img):
+        ''' Preprocess image '''
         img  = img.copy()
 
         data = img.transpose((2, 0, 1))
@@ -164,6 +171,7 @@ class ImageServer(SocketServer.ThreadingTCPServer):
         return data
 
     def forward_img(self, data):
+        ''' Forward image into the CNN to get encoded image '''
         cnn_in = np.zeros((1, 3, 224, 224), dtype=np.float32)
         cnn_in[0, :] = data
 
@@ -198,35 +206,37 @@ class ImageHandler(SocketServer.BaseRequestHandler):
             mode: string 'RGB',
             size: tuple,
             file_path: string,
-            text_context: numpy array,
+            k: integer,
+            OPTIONAL -- text_context: numpy array,
         })
         '''
         data = self.recv_msg() # raw pickled data
 
-        unpickled = pkl.loads(data) # raw unpicled data
-        file_path  = unpickled['file_path']
-        # Whether to generate the alpha images for introspection
-        introspect = unpickled['introspect']
-        reconstructed_img = Image.frombytes(unpickled['mode'], unpickled['size'], unpickled['pixels'])
-        img = self.server.load_image(reconstructed_img)
-        # Context of the model
-        img_preprocessed = self.server.preprocess(img)
-        img_context  = self.server.forward_img(img_preprocessed)
+        unpickled           = pkl.loads(data) # raw unpicled data
+        file_path           = unpickled['file_path']
+        introspect = unpickled['introspect'] # Whether to generate the alpha images for introspection
+        reconstructed_img   = Image.frombytes(unpickled['mode'], unpickled['size'], unpickled['pixels'])
+        img                 = self.server.resize_image(reconstructed_img)
+        img_preprocessed    = self.server.preprocess(img)
+        img_context         = self.server.forward_img(img_preprocessed) # Image context of the model
+        num_samples         = unpickled['k'] if 'k' in unpickled.keys() else 1
         if 'tex_dim' in self.server.options:
             text_context = unpickled['text_context']
 
-            sample, score = self.server.capgen.gen_sample(self.server.tparams, self.server.f_init, self.server.f_next, img_context, text_context, 
-                                              self.server.options, trng=self.server.trng, k=1, maxlen=200, stochastic=False)
+            samples, score = self.server.capgen.gen_sample(self.server.tparams, self.server.f_init, self.server.f_next, img_context, text_context, 
+                                              self.server.options, trng=self.server.trng, k=num_samples, maxlen=200, stochastic=False)
         else:
-            sample, score = self.server.capgen.gen_sample(self.server.tparams, self.server.f_init, self.server.f_next, img_context, 
-                                              self.server.options, trng=self.server.trng, k=1, maxlen=200, stochastic=False)
-        sidx = np.argmin(score)
-        caption = sample[sidx][:-1]
+            samples, score = self.server.capgen.gen_sample(self.server.tparams, self.server.f_init, self.server.f_next, img_context, 
+                                              self.server.options, trng=self.server.trng, k=num_samples, maxlen=200, stochastic=False)
 
-        words = map(lambda w: self.server.word_idict[w] if w in self.server.word_idict else '<UNK>', caption)
+        captions = []
+        for sample in samples:
+            caption = sample[:-1]
+
+            words = map(lambda w: self.server.word_idict[w] if w in self.server.word_idict else '<UNK>', caption)
+            captions.append(' '.join(words))
 
         if introspect:
-            embed()
             # Generate the alpha images, e.g. what the model 'sees'
             alpha = self.server.f_alpha(np.array(caption).reshape(len(caption),1), 
                 np.ones((len(caption),1), dtype='float32'), 
