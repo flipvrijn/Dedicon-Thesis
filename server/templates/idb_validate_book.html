@@ -10,6 +10,18 @@
 				<form method="POST">
 					<input type="hidden" name="id" value="{{ row[0] }}">
 					<div class="form-group">
+						<label class="control-label">Type plaatje</label>
+						<div class="switch-toggle well">
+							<input id="normal" name="type" type="radio" value="1" checked>
+							<label for="normal" onclick="">Normaal <kbd>1</kbd></label>
+							<input id="strip" name="type" type="radio" value="2">
+							<label for="strip" onclick="">Strip <kbd>2</kbd></label>
+							<input id="diagram" name="type" type="radio" value="3">
+							<label for="diagram" onclick="">Diagram <kbd>3</kbd></label>
+							<a class="btn btn-primary"></a>
+						</div>
+					</div>
+					<div class="form-group">
 						<label class="control-label">Omschrijving</label>
 						<textarea name="caption" class="form-control">{{ row[3] if row[3] else '' }}</textarea>
 					</div>

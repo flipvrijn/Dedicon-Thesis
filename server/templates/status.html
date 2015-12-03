@@ -26,12 +26,9 @@
 			<td>{{ filename }}</td>
 			<td>
 				{{ data['status_text'] }}
-				{% if data['status'] == 12 %}
-				({{ data['error_message'] }})
-				{% endif %}
 			</td>
 			{% if data['status'] > 5 %}
-				<td>{{ data['epoch'] }}</td>
+				<td>{{ data['epoch'] }} / {{ data['update'] }}</td>
 				<td>{{ data['training_time'] }}</td>
 				<td><span class="sparkline">{{ data['costs'] }}</span></td>
 				<td>
@@ -63,7 +60,7 @@
 				</td>
 			{% else %}
 				<td>&#8212;</td> <!-- Epoch -->
-				<td>&#8212;</td> <!-- Time -->
+				<td>{{ data['training_time'] }}</td> <!-- Time -->
 				<td>&#8212;</td> <!-- Costs graph -->
 				<td>&#8212;</td> <!-- Sample -->
 				<td>

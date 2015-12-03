@@ -117,6 +117,7 @@ def status_training():
             'status': status['status'],
             'status_text': building_status_to_text[status['status']][0],
             'epoch': status['epoch'],
+            'update': status['update'] if 'update' in status.keys() else '',
             'costs': ','.join([str(x) for x in status['costs']]),
             'samples': zip(status['samples'], status['truths']),
             'errors': status['history_errors'],

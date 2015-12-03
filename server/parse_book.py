@@ -10,7 +10,7 @@ from IPython import embed
 from lxml import etree
 
 # Config logger
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(filename=__name__+'.log', level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 def extract_images(path):
@@ -61,7 +61,8 @@ def init_db(db_file):
         img TEXT NOT NULL,
         caption TEXT,
         valid INTEGER DEFAULT 0,
-        validated INTEGER DEFAULT 0
+        validated INTEGER DEFAULT 0,
+        type INTEGER NULL
     )''')
     conn.commit()
     conn.close()
