@@ -18,7 +18,7 @@ from collections import OrderedDict
 from gensim.models import Word2Vec
 
 from sklearn.pipeline import make_pipeline
-from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from sklearn.decomposition import TruncatedSVD
 from sklearn.preprocessing import Normalizer
 
@@ -30,7 +30,103 @@ from IPython import embed
 stop = stopwords.words('english')
 stemmer = SnowballStemmer('english')
 
-def pipeline_w2v(titles, descriptions, tags):
+def pipeline_w2vtfidf(titles, descriptions, tags, n_best=150):
+    def preprocess(s):
+        global stemmer
+        
+        ns = []
+        raw = []
+        for w in s:
+            if w:
+                stemmed = stemmer.stem(w)
+                ns.append(stemmed)
+                raw.append(w)
+
+        return ns, raw
+
+    # Load Word2Vec model
+    print 'Loading word2vec model...'
+    t_model_start = time.time()
+    w2v_model = Word2Vec.load_word2vec_format('/media/Data/flipvanrijn/models/word2vec/enwiki-latest-pages.512.bin', binary=True)
+    print 'Loaded in {}s'.format(time.time() - t_model_start)
+
+    print 'Loading TF-IDF model...'
+    t_tfidf_start = time.time()
+    with open('/media/Data/flipvanrijn/datasets/coco/processed/reduced/tfidf_model.pkl') as f_in:
+        tfidf_model = cPickle.load(f_in)
+    tfidf_feature_names = tfidf_model.get_feature_names()
+    print 'Loaded in {}s'.format(time.time() - t_tfidf_start)
+
+    print 'Building stemming dictionary...'
+    stem2word = {}
+    t_stemming_start = time.time()
+    for word in w2v_model.index2word:
+        stem = stemmer.stem(word)
+        stem2word[stem] = word
+    print 'Built in {}s'.format(time.time() - t_stemming_start)
+
+    # Create feature vectors of context and only keep images WITH context
+    bar = Bar('Extracting features...', max=len(titles))
+    for i in xrange(len(titles)):
+        # Stem words and remove stopwords for title...
+        context = []
+        context_raw = []
+        title, title_raw = preprocess(titles[i].split(' '))
+        if title:
+            context += title
+            context_raw += title_raw
+        # ... description (for each sentence) ...
+        for sent in sent_tokenize(descriptions[i]):
+            sent, sent_raw = preprocess(sent.split(' '))
+            if sent:
+                context += sent
+                context_raw += sent_raw
+        # ... and tagsc
+        ts, ts_raw = preprocess(tags[i])
+        if ts:
+            context += ts
+            context_raw += ts_raw
+
+        # Get TF-IDF count for current context
+        feats = tfidf_model.transform([' '.join(context)]).todense()[0].tolist()[0]
+        # Sort on score and grab best n_best
+        scores = sorted(
+            [(tfidf_feature_names[pair[0]], pair[1]) for pair in zip(range(0, len(feats)), feats) if pair[1] > 0], 
+            key=lambda x: x[1] * -1
+        )[:n_best]
+
+        # extract relevant raw
+        tfidf_dict = dict(scores)
+        viz = []
+        for stemmed, raw in zip(context, context_raw):
+            if stemmed in tfidf_dict.keys():
+                viz.append((raw, tfidf_dict[stemmed]))
+            else:
+                viz.append((raw, 0))
+
+        embed()
+
+        # Construct W2V feature matrix from the N best words
+        features = np.zeros((n_best, 512), dtype=np.float32)
+        num_features = 0
+        for stem, score in scores:
+            # skip n-grams or unknown words
+            if ' ' in stem or stem not in stem2word:
+                continue
+            word = stem2word[stem]
+            features[num_features] = w2v_model[word]
+            num_features += 1
+
+        if i == 0:
+            feat_flatten = csr_matrix(features.flatten())
+        else:
+            feat_flatten = vstack([feat_flatten, csr_matrix(features.flatten())])
+        bar.next()
+    bar.finish()
+
+    return feat_flatten
+
+def pipeline_w2v(titles, descriptions, tags, args):
     def window(seq, n=2):
         "Returns a sliding window (of width n) over data from the iterable"
         "   s -> (s0,s1,...s[n-1]), (s1,s2,...,sn), ...                   "
@@ -49,7 +145,7 @@ def pipeline_w2v(titles, descriptions, tags):
         
         ns = []
         for w in s:
-            if w and w in model:# and w not in stop:
+            if w and w in model:
                 w = stemmer.stem(w)
                 ns.append(w)
 
@@ -97,7 +193,7 @@ def pipeline_w2v(titles, descriptions, tags):
         X = []
         if context:
             for sent in context:
-                X += [' '.join(x) for x in window(sent, args.w)]
+                X += [' '.join(x) for x in window(sent, args.window)]
             mask.append(1)
         else:
             mask.append(0)
@@ -136,7 +232,7 @@ def pipeline_w2v(titles, descriptions, tags):
 
     return feat_flatten
 
-def pipeline_tfidf(titles, descriptions, tags, dataset_sizes):
+def pipeline_tfidf(titles, descriptions, tags):
     def preprocess(s):
         global stop, stemmer
         
@@ -170,17 +266,25 @@ def pipeline_tfidf(titles, descriptions, tags, dataset_sizes):
         bar.next()
     bar.finish()
 
-    print 'Encoding features with TFIDF'
-    tfidf     = TfidfVectorizer(min_df=3, max_df=0.8, strip_accents='unicode',
+    print 'Encoding features with TF-IDF'
+    model     = TfidfVectorizer(min_df=3, max_df=0.8, strip_accents='unicode',
                             analyzer='word', ngram_range=(1,2),
                             use_idf=True, smooth_idf=True, sublinear_tf=True, stop_words='english')
+
+    matrix = model.fit_transform(docs)
+
+    return (matrix, model)
+
+def pipeline_lsa(tfidf_matrix):
+    print 'Encoding features with LSA'
+    
     svd       = TruncatedSVD(512)
     normalize = Normalizer(copy=False)
-    lsa       = make_pipeline(tfidf, svd, normalize)
-    matrix    = lsa.fit_transform(docs)
+    lsa       = make_pipeline(svd, normalize)
+    lsa_mat   = lsa.fit_transform(tfidf_matrix)
 
     # Split the matrix up according to the dataset files
-    return matrix
+    return lsa_mat
 
 def pipeline_pos(titles, descriptions, tags):
     def preprocess(inpt):
@@ -213,8 +317,44 @@ def pipeline_pos(titles, descriptions, tags):
 
     return pos_collection
 
+def pipeline_onehot(titles, descriptions, tags):
+    # Create feature vectors of context and only keep images WITH context
+    bar = Bar('Extracting features...', max=len(titles))
+    docs = []
+    for i in xrange(len(titles)):
+        docs.append(u'{} {} {}'.format(titles[i], descriptions[i], ' '.join(tags[i])))
+
+    vectorizer = CountVectorizer(min_df=5)
+    X = vectorizer.fit_transform(docs)
+
+    bar = Bar('Extracting features...', max=len(docs))
+    idx_docs = []
+    for idoc, doc in enumerate(docs):
+        idxs    = X[idoc].nonzero()[1] + 1
+        idxs    = idxs.tolist()
+        idx_docs.append(idxs)
+        bar.next()
+    bar.finish()
+
+    max_len = 500
+
+    bar = Bar('Merging into one matrix...', max=len(idx_docs))
+    for i, idx_doc in enumerate(idx_docs):
+        features = np.zeros((1, max_len), np.int64)
+        vec = np.array(idx_doc[:max_len])
+        features[0, :vec.shape[0]] = vec
+
+        if i == 0:
+            feat_flatten = csr_matrix(features.flatten())
+        else:
+            feat_flatten = vstack([feat_flatten, csr_matrix(features.flatten())])
+        bar.next()
+    bar.finish()
+
+    return feat_flatten
+
 def main(args):
-    if args.type == 'w2v':
+    if args.type == 'w2v' or args.type == 'w2vtfidf':
         if ',' in args.in_file:
             raise 'Only one input file is needed for Word2Vec!'
 
@@ -224,7 +364,10 @@ def main(args):
             descriptions = cPickle.load(f)
             tags = cPickle.load(f)
 
-        feat_flatten = pipeline_w2v(titles, descriptions, tags)
+        if args.type == 'w2v':
+            feat_flatten = pipeline_w2v(titles, descriptions, tags, args)
+        else:
+            feat_flatten = pipeline_w2vtfidf(titles, descriptions, tags)
 
         out = {
             'data': feat_flatten.data,
@@ -235,10 +378,11 @@ def main(args):
 
         print 'Saving features to {}'.format(args.out_file)
         np.savez(args.out_file, **out)
-    elif args.type == 'tfidf':
+    elif args.type == 'tfidf' or args.type == 'lsa':
         if ',' not in args.in_file:
-            raise 'All context files are required for TFIDF!'
+            raise 'All context files are required for TFIDF/LSA!'
 
+        # Load full dataset
         dataset_sizes = []
         all_titles = []
         all_descriptions = []
@@ -254,14 +398,24 @@ def main(args):
             all_descriptions += descriptions
             all_tags += tags
 
-        data = pipeline_tfidf(all_titles, all_descriptions, all_tags, dataset_sizes)
+        # Generate TF-IDF matrix
+        tfidf_matrix, tfidf_model = pipeline_tfidf(all_titles, all_descriptions, all_tags)
 
-        out = {
-            'data': data,
-        }
-        
-        print 'Saving context features to {}...'.format(args.out_file)
-        np.savez(args.out_file, **out)
+        if args.type == 'tfidf':
+            print 'Saving TF-IDF context features to {}...'.format(args.out_file)
+            with open(args.out_file, 'wb') as f_out:
+                cPickle.dump(tfidf_model, f_out)           
+
+        # In case of LSA, also apply LSA to the TF-IDF matrix
+        if args.type == 'lsa':
+            data = pipeline_lsa(tfidf_matrix)
+
+            out = {
+                'data': data,
+            }
+            
+            print 'Saving context features to {}...'.format(args.out_file)
+            np.savez(args.out_file, **out)
     elif args.type == 'pos':
         print 'Loading context data...'
         with open(args.in_file, 'r') as f:
@@ -275,6 +429,34 @@ def main(args):
             'nouns': nouns_collection,
         }
         np.savez(args.out_file, **out)
+    elif args.type == 'onehot':
+        if ',' not in args.in_file:
+            raise 'All context files are required for onehot encoding!'
+
+        all_titles = []
+        all_descriptions = []
+        all_tags = []
+        for f_in in args.in_file.split(','):
+            print 'Loading context data from {}...'.format(f_in)
+            with open(f_in, 'r') as f:
+                titles = cPickle.load(f)
+                descriptions = cPickle.load(f)
+                tags = cPickle.load(f)
+            all_titles += titles
+            all_descriptions += descriptions
+            all_tags += tags
+
+        feats = pipeline_onehot(all_titles, all_descriptions, all_tags)
+
+        out = {
+            'data': feats.data,
+            'indices': feats.indices,
+            'indptr': feats.indptr,
+            'shape': feats.shape,
+        }
+
+        print 'Saving features to {}'.format(args.out_file)
+        np.savez(args.out_file, **out)
     else:
         raise 'Unknown feature type!'
 
@@ -283,7 +465,7 @@ if __name__ == '__main__':
     parser.add_argument('in_file', help='Context file', type=str)
     parser.add_argument('out_file', help='Output file', type=str)
     parser.add_argument('--window', '-w', help='Sliding window size', type=int, default=3)
-    parser.add_argument('--type', '-t', help='Feature type', choices=['w2v', 'tfidf', 'pos'])
+    parser.add_argument('--type', '-t', help='Feature type', choices=['w2v', 'tfidf', 'pos', 'w2vtfidf', 'onehot'])
 
     args = parser.parse_args()
 
