@@ -1,4 +1,4 @@
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/../models/attention/" && pwd )"
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/../../models/attention/" && pwd )"
 cd $DIR
 
 DATA_DIR="/media/Data/flipvanrijn/datasets/coco/processed/reduced/w2v1ngramtfidf/"
