@@ -15,7 +15,7 @@ from progress.bar import Bar
 
 from IPython import embed
 
-processing_type = 'full' # either 'full'/'reduced'
+processing_type = 'reduced' # either 'full'/'reduced'
 base_path='/media/Data/flipvanrijn/datasets/coco/processed/'+processing_type+'/'
 split_path='/media/Data/flipvanrijn/datasets/coco/processed/'+processing_type+'/splits/'
 
@@ -119,25 +119,24 @@ def main():
     print 'Loading validation features...'
     features_sp_val = load_sparse_csr(base_path+'features_val_conv5_4.npz')
     features_sp = vstack((features_sp_train, features_sp_val), format='csr')
-
-    embed()
+    print 'Done'
 
     # loads the raw context (title, description, tags)
-    def _load_raw_context(name):
-        raw_context = []
-        with open(base_path+name) as f:
-            titles = pkl.load(f)
-            descriptions = pkl.load(f)
-            tags = pkl.load(f)
-            for i in range(len(titles)):
-                raw_context.append((titles[i], descriptions[i], tags[i]))
-        return raw_context
+    #def _load_raw_context(name):
+    #    raw_context = []
+    #    with open(base_path+name) as f:
+    #        titles = pkl.load(f)
+    #        descriptions = pkl.load(f)
+    #        tags = pkl.load(f)
+    #        for i in range(len(titles)):
+    #            raw_context.append((titles[i], descriptions[i], tags[i]))
+    #    return raw_context
 
-    print 'Loading raw context...'
-    train_raw_context = _load_raw_context('coco_train_context.pkl')
-    val_raw_context = _load_raw_context('coco_val_context.pkl')
-    raw_context = train_raw_context + val_raw_context
-    print 'Done'
+    #print 'Loading raw context...'
+    #train_raw_context = _load_raw_context('coco_train_context.pkl')
+    #val_raw_context = _load_raw_context('coco_val_context.pkl')
+    #raw_context = train_raw_context + val_raw_context
+    #print 'Done'
 
     ## final context feature map
     print 'Loading train context features...'
@@ -146,49 +145,59 @@ def main():
     features_ctx_val = load_sparse_csr(base_path+'val_context.npz')
     features_ctx = vstack((features_ctx_train, features_ctx_val), format='csr')
     
+    #print 'Loading one-hot context features...'
+    #features_ctx = load_sparse_csr(base_path+'context_onehot.npz')
+
+
+    #print 'Loading TFIDF context features...'
+    #loader = numpy.load(base_path+'tfidf_context.npz')
+    #features_ctx = loader['data']
+    #print 'Done'
+
     def _build_data(flist):
         data_img = [None] * len(flist)
         data_cap = []
         data_ctx = [None] * len(flist)
-        data_ctx_raw = [None] * len(flist)
+        #data_ctx_raw = [None] * len(flist)
         bar = Bar('Processing...', max=len(flist))
         for idx, fname in enumerate(flist):
             # save a sparse matrix
             data_img[idx] = features_sp[featdict[fname],:]
-            data_ctx[idx] = features_ctx[featdict[fname],:]
-            data_ctx_raw[idx] = raw_context[featdict[fname]]
+            feat_ctx = features_ctx[featdict[fname],:]
+            data_ctx[idx] = feat_ctx[numpy.newaxis] if feat_ctx.ndim == 1 else feat_ctx
+            #data_ctx_raw[idx] = raw_context[featdict[fname]]
             for cc in captions[fname]:
                 data_cap.append((cc, idx))
             bar.next()
         bar.finish()
 
-        return data_cap, data_img, data_ctx, data_ctx_raw
+        return data_cap, data_img, data_ctx#, data_ctx_raw
 
     print 'Processing Train...'
-    data_cap, data_img, data_ctx, data_ctx_raw = _build_data(train_f)
+    data_cap, data_img, data_ctx = _build_data(train_f) #, data_ctx_raw
     with open(base_path+'coco_align.train.tryout.pkl', 'wb') as f:
         pkl.dump(data_cap, f)
         pkl.dump(data_img, f)
         pkl.dump(data_ctx, f)
-        pkl.dump(data_ctx_raw, f)
+        #pkl.dump(data_ctx_raw, f)
     print 'Done'
 
     print 'Processing Test...'
-    data_cap, data_img, data_ctx, data_ctx_raw = _build_data(test_f)
+    data_cap, data_img, data_ctx = _build_data(test_f) #, data_ctx_raw
     with open(base_path+'coco_align.test.tryout.pkl', 'wb') as f:
         pkl.dump(data_cap, f)
         pkl.dump(data_img, f)
         pkl.dump(data_ctx, f)
-        pkl.dump(data_ctx_raw, f)
+        #pkl.dump(data_ctx_raw, f)
     print 'Done'
 
     print 'Processing Dev...'
-    data_cap, data_img, data_ctx, data_ctx_raw = _build_data(dev_f)
+    data_cap, data_img, data_ctx = _build_data(dev_f) #, data_ctx_raw
     with open(base_path+'coco_align.dev.tryout.pkl', 'wb') as f:
         pkl.dump(data_cap, f)
         pkl.dump(data_img, f)
         pkl.dump(data_ctx, f)
-        pkl.dump(data_ctx_raw, f)
+        #pkl.dump(data_ctx_raw, f)
     print 'Done'
 
 if __name__ == '__main__':
