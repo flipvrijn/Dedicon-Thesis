@@ -86,6 +86,8 @@ def main(args):
                 if len(image_files) < args.batch_size:
                     feat = feat[len(image_files), :, :, :]
 
+                embed()
+
                 # Store it in a sparse matrix
                 if i == 0:
                     feat_flatten_list = csr_matrix(np.array(map(lambda x: x.flatten(), feat)))
@@ -116,10 +118,9 @@ if __name__ == '__main__':
 
     parser.add_argument('--proto', dest='prototxt', help='Deploy prototxt file for CNN', type=str)
     parser.add_argument('--model', dest='model', help='Caffemodel file for CNN', type=str)
-    parser.add_argument('--imgs', dest='image_dir', help='Input image directory', type=str)
-    parser.add_argument('--mean', dest='mean', help='Mean file', type=str)
-    parser.add_argument('-o', dest='out_dir', help='Output directory', type=str)
     parser.add_argument('-b', dest='batch_size', default=50, type=int, help='CNN batch size')
+    parser.add_argument('image_dir', help='Input image directory', type=str)
+    parser.add_argument('out_dir', help='Output directory', type=str)
 
     args = parser.parse_args()
 

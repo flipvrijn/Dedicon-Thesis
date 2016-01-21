@@ -139,20 +139,22 @@ def main():
     #print 'Done'
 
     ## final context feature map
-    print 'Loading train context features...'
-    features_ctx_train = load_sparse_csr(base_path+'train_context.npz')
-    print 'Loading validation context features...'
-    features_ctx_val = load_sparse_csr(base_path+'val_context.npz')
-    features_ctx = vstack((features_ctx_train, features_ctx_val), format='csr')
+    #print 'Loading train context features...'
+    #features_ctx_train = load_sparse_csr(base_path+'train_context.npz')
+    #print 'Loading validation context features...'
+    #features_ctx_val = load_sparse_csr(base_path+'val_context.npz')
+    #features_ctx = vstack((features_ctx_train, features_ctx_val), format='csr')
     
     #print 'Loading one-hot context features...'
     #features_ctx = load_sparse_csr(base_path+'context_onehot.npz')
 
-
     #print 'Loading TFIDF context features...'
-    #loader = numpy.load(base_path+'tfidf_context.npz')
+    #loader = numpy.load(base_path+'tfidf_context_wo_stemming.npz')
     #features_ctx = loader['data']
     #print 'Done'
+
+    print 'Loading TF-IDF context features...'
+    features_ctx = load_sparse_csr(base_path+'tfidf_context_wo_lsa.npz')
 
     def _build_data(flist):
         data_img = [None] * len(flist)
@@ -175,7 +177,7 @@ def main():
 
     print 'Processing Train...'
     data_cap, data_img, data_ctx = _build_data(train_f) #, data_ctx_raw
-    with open(base_path+'coco_align.train.tryout.pkl', 'wb') as f:
+    with open(base_path+'coco_align.train.pkl', 'wb') as f:
         pkl.dump(data_cap, f)
         pkl.dump(data_img, f)
         pkl.dump(data_ctx, f)
@@ -184,7 +186,7 @@ def main():
 
     print 'Processing Test...'
     data_cap, data_img, data_ctx = _build_data(test_f) #, data_ctx_raw
-    with open(base_path+'coco_align.test.tryout.pkl', 'wb') as f:
+    with open(base_path+'coco_align.test.pkl', 'wb') as f:
         pkl.dump(data_cap, f)
         pkl.dump(data_img, f)
         pkl.dump(data_ctx, f)
@@ -193,7 +195,7 @@ def main():
 
     print 'Processing Dev...'
     data_cap, data_img, data_ctx = _build_data(dev_f) #, data_ctx_raw
-    with open(base_path+'coco_align.dev.tryout.pkl', 'wb') as f:
+    with open(base_path+'coco_align.dev.pkl', 'wb') as f:
         pkl.dump(data_cap, f)
         pkl.dump(data_img, f)
         pkl.dump(data_ctx, f)

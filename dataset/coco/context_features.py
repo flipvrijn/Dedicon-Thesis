@@ -399,7 +399,7 @@ def main(args):
             all_tags += tags
 
         # Generate TF-IDF matrix
-        tfidf_matrix, tfidf_model = pipeline_tfidf(all_titles, all_descriptions, all_tags)
+        data, tfidf_model = pipeline_tfidf(all_titles, all_descriptions, all_tags)
 
         if args.type == 'tfidf':
             print 'Saving TF-IDF context features to {}...'.format(args.out_file)
@@ -408,14 +408,15 @@ def main(args):
 
         # In case of LSA, also apply LSA to the TF-IDF matrix
         if args.type == 'lsa':
-            data = pipeline_lsa(tfidf_matrix)
+            data = pipeline_lsa(data)
 
-            out = {
-                'data': data,
-            }
-            
-            print 'Saving context features to {}...'.format(args.out_file)
-            np.savez(args.out_file, **out)
+        embed()
+        out = {
+            'data': data,
+        }
+        
+        print 'Saving context features to {}...'.format(args.out_file)
+        np.savez(args.out_file, **out)
     elif args.type == 'pos':
         print 'Loading context data...'
         with open(args.in_file, 'r') as f:
@@ -465,7 +466,7 @@ if __name__ == '__main__':
     parser.add_argument('in_file', help='Context file', type=str)
     parser.add_argument('out_file', help='Output file', type=str)
     parser.add_argument('--window', '-w', help='Sliding window size', type=int, default=3)
-    parser.add_argument('--type', '-t', help='Feature type', choices=['w2v', 'tfidf', 'pos', 'w2vtfidf', 'onehot'])
+    parser.add_argument('--type', '-t', help='Feature type', choices=['w2v', 'tfidf', 'lsa', 'pos', 'w2vtfidf', 'onehot'])
 
     args = parser.parse_args()
 
