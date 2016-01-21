@@ -6,3 +6,7 @@ OUT_DIR="/media/Data/flipvanrijn/models/"
 MODEL_NAME="context_attn_rnn.npz"
 
 python2.7 eval.py --attn_type=deterministic --type=t_attn --lenc --tex_dim=500 $DATA_DIR $OUT_DIR $MODEL_NAME
+
+# Generate caps
+OUT_FILE="$OUT_DIR$MODEL_NAME.hypotheses.txt"
+python2.7 generate_caps_text.py $DATA_DIR $OUT_DIR$MODEL_NAME $OUT_FILE

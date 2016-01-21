@@ -29,7 +29,7 @@ if [ -f $contextfile ]; then
   echo "Skipping fetching Flickr context..."
 else
   echo '>>> Adding Flickr context to dataset'
-  python2.7 ../coco/coco_context.py \
+  python2.7 ../dataset/coco/fetch_coco_context.py \
     --key $key \
     --secret $secret \
     --instances $instancesfile \
@@ -41,22 +41,10 @@ if [ -f $sanitizedfile ]; then
   echo "Skipping sanitizing Flickr context..."
 else
   echo '>>> Sanitizing Flickr context dataset'
-  python2.7 ../coco/coco_sanitize.py \
+  python2.7 ../dataset/coco/coco_sanitize.py \
     -i $contextfile \
     -o $sanitizedfile \
     --cp $DIR
-fi
-
-if [ -f $datasetfile ]; then
-  echo "Skipping building dataset file..."
-else
-  echo ">>> Building dataset file"
-  python2.7 ../coco/coco_dataset.py \
-    --context=$contextfile \
-    --caption=$sanitizedfile \ 
-    --instances=$instancesfile \ 
-    --cp=$DIR \
-    -o=$datasetfile
 fi
 
 echo "Done!"

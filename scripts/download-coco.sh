@@ -4,7 +4,6 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/../downloads/" && pwd )"
 cd $DIR
 
 websites=(
-  http://www.cs.berkeley.edu/~rbg/fast-rcnn-data/fast_rcnn_models.tgz
   http://msvocds.blob.core.windows.net/annotations-1-0-2/instances_train2014.json
   http://msvocds.blob.core.windows.net/annotations-1-0-2/instances_val2014.json
   http://msvocds.blob.core.windows.net/annotations-1-0-2/captions_train2014.json
@@ -13,7 +12,6 @@ websites=(
   http://msvocds.blob.core.windows.net/coco2014/val2014.zip
 )
 files=(
-  fast_rcnn_models.tgz
   instances_train2014.json
   instances_val2014.json
   captions_train2014.json
@@ -22,7 +20,6 @@ files=(
   val2014.zip
 )
 checksums=(
-  5f7dde9f5376e18c8e065338cc5df3f7
   0dcea1764a9efa9d764738631d8006f3
   da37ab3e12c57ce045f354e0a990316a
   6329188a179c47223bf21bcd174ee991
