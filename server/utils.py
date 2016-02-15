@@ -3,6 +3,7 @@ import subprocess
 import thread
 import re
 import os.path
+import os
 import socket
 import json
 import struct
@@ -14,6 +15,7 @@ import h5py
 import numpy as np
 
 from PIL import Image
+from collections import OrderedDict
 
 from IPython import embed
 
@@ -24,6 +26,7 @@ from pycocoevalcap.cider.cider import Cider
 from pycocoevalcap.meteor.meteor import Meteor
 
 from serve import config
+import handle_book
 
 models_directory = config['MODELS_FOLDER']
 network_directory = '../models/attention'
@@ -144,7 +147,7 @@ def check_model_training(name):
     for process in psutil.process_iter():
         try:
             cmd = ' '.join(process.cmdline())
-            if 'python2.7' in process.name() and 'eval.py' in cmd and name in cmd:
+            if 'python2.7' in process.name() and 'train.py' in cmd and name in cmd:
                 return True
         except psutil.Error:
             pass
@@ -152,6 +155,7 @@ def check_model_training(name):
     return False
 
 def running_model_name():
+    ''' Returns the name of the model that is currently running '''
     for process in psutil.process_iter():
         try:
             cmd = ' '.join(process.cmdline())
@@ -167,9 +171,10 @@ def running_model_name():
     return None
 
 def get_models():
+    ''' Returns a list of all models known to the server '''
     models = []
     files = glob.glob('{}/*.pkl'.format(models_directory))
-    files.sort(key=lambda x: os.stat(x).st_mtime, reverse=True)
+    files.sort(key=lambda x: x, reverse=False)
     for f in files:
         filename = os.path.split(f)[1] # only the filename
         name     = filename[:-4] # without the '.pkl'
@@ -177,6 +182,7 @@ def get_models():
         status   = status_model(name)
         with open(f, 'r') as handler:
             options  = cPickle.load(handler)
+            options = OrderedDict(sorted(options.items()))
         models.append({
             'name': name, 
             'modified': modified, 
@@ -186,11 +192,33 @@ def get_models():
 
     return models
 
+def get_model_options(name):
+    with open('{}/{}.pkl'.format(models_directory, name)) as f:
+        options = cPickle.load(f)
+
+    return options
+
+def rename_model(old, new):
+    ''' Renames a model (pure cosmetic) '''
+    # first rename all files
+    for filename in os.listdir(models_directory):
+        if filename.startswith(old):
+            os.rename(os.path.join(models_directory, filename), os.path.join(models_directory, new + filename[len(old):]))
+            
+    # then modify the options
+    opts_file = '{}/{}.pkl'.format(models_directory, new)
+    with open(opts_file, 'rb') as f:
+        opts = cPickle.load(f)
+        opts['saveto'] = new
+    with open(opts_file, 'wb') as f:
+        cPickle.dump(opts, f)
+
 def training_model_name():
+    ''' Start training procedure for a model '''
     for process in psutil.process_iter():
         try:
             cmd = ' '.join(process.cmdline())
-            if 'python2.7' in process.name() and 'eval.py' in cmd and '.npz' in cmd:
+            if 'python2.7' in process.name() and 'train.py' in cmd and '.npz' in cmd:
                 pattern = re.compile('\s(.*?\.npz)')
                 match   = pattern.search(cmd)
                 if match:
@@ -219,7 +247,11 @@ def start_model(name):
                 '--model={}/{}'.format(models_directory, name), 
                 '--options={}/{}.pkl'.format(models_directory, name),
                 '--prototxt={}/cnn/VGG_ILSVRC_19_layers_deploy.prototxt'.format(models_directory),
-                '--caffemodel={}/cnn/VGG_ILSVRC_19_layers.caffemodel'.format(models_directory)]
+                '--caffemodel={}/cnn/VGG_ILSVRC_19_layers.caffemodel'.format(models_directory),
+                '--w2vmodel={}/word2vec/enwiki-latest-pages.512.bin'.format(models_directory),
+                '--tfidfmodel={}/tfidf/tfidf_model.pkl'.format(models_directory),
+                '--svdmodel={}/tfidf/svd_model.pkl'.format(models_directory),
+                '--rawmodel={}/raw/raw_model.pkl'.format(models_directory)]
             subprocess.Popen(cmd)
         thread.start_new_thread(run_server, ())
 
@@ -240,16 +272,21 @@ def stop_model(name):
             pass
     return False
 
-def start_training(name, model_type):
+def start_training(model_name, model_type, data_folder, data_type, data_type_params, extra_params):
     ''' Starts the trainer for a model '''
     try:
         def run_trainer():
             cmd = ['python2.7', 
-                os.path.join(network_directory, 'eval.py'), 
-                config['DATA_FOLDER'],
-                models_directory, 
-                name, 
-                '--type={}'.format(model_type)]
+                os.path.join(network_directory, 'train.py'), 
+                data_folder,
+                models_directory,
+                '{}.npz'.format(model_name),
+                '--type={}'.format(model_type),
+                '--preproc_type={}'.format(data_type),
+                '--preproc_params={}'.format(','.join(['{}={}'.format(k,v) for k,v in data_type_params.items()])),]
+            if extra_params:
+                cmd += [extra_params]
+            print cmd
             subprocess.Popen(cmd)
         thread.start_new_thread(run_trainer, ())
 
@@ -262,7 +299,7 @@ def stop_training(name):
     for process in psutil.process_iter():
         try:
             cmd = ' '.join(process.cmdline())
-            if 'python2.7' in process.name() and 'eval.py' in cmd and name in cmd:
+            if 'python2.7' in process.name() and 'train.py' in cmd and name in cmd:
                 process.kill()
 
                 return True
@@ -272,6 +309,7 @@ def stop_training(name):
     return False
 
 def resize_image(image_path, resize=256, crop=224):
+    ''' Resizes an image according to the resizing scheme of the captioning models '''
     image = Image.open(image_path)
     width, height = image.size
 
@@ -284,20 +322,45 @@ def resize_image(image_path, resize=256, crop=224):
     left = (width  - crop) / 2
     top  = (height - crop) / 2
     image_resized = image.resize((width, height), Image.BICUBIC).crop((left, top, left + crop, top + crop))
-    data = np.array(image_resized.convert('RGB').getdata()).reshape(crop, crop, 3)
+    image_resized = image_resized.convert('RGB')
 
-    embed()
-    resized = Image.fromarray(data)
-    resized.save(image_path)
+    image_resized.save(image_path)
 
-def query_model(image_path, introspect):
-    ''' Queries the caption model with an image '''
+def query_model(image_path, introspect, text=None):
+    ''' Queries the caption model with an image (and context?) '''
+
+    def recvall(sock, n):
+        data = ''
+        while len(data) < n:
+            packet = sock.recv(n - len(data))
+            if not packet:
+                return None
+            data += packet
+        return data
+
+    def recv_msg(sock):
+        raw_length = recvall(sock, 4)
+        if not raw_length:
+            return None
+        length = struct.unpack('>I', raw_length)[0]
+        return recvall(sock, length)
+
     # Send it to the server via socket
     HOST, PORT = "localhost", 9999
     
     # Read image and serialize it
     img = Image.open(image_path)
-    data = {'pixels': img.tobytes(), 'size': img.size, 'mode': img.mode, 'introspect': introspect, 'file_path': image_path}
+    data = {
+        'img': {
+            'pixels': img.tobytes(),
+            'size': img.size,
+            'mode': img.mode,
+        },
+        'text': text,
+        'introspect_image': introspect,
+        'introspect_context': introspect,
+        'output_path': image_path
+    }
     data = cPickle.dumps(data)
 
     # Create a socket (SOCK_STREAM means a TCP socket)
@@ -310,11 +373,11 @@ def query_model(image_path, introspect):
         sock.sendall(data)
 
         # Receive data from the server and shut down
-        received = sock.recv(1024)
+        received = cPickle.loads(recv_msg(sock))
     finally:
         sock.close()
 
-    return received
+    return received['captions'][0]
 
 def generate_caps(name, saveto):
     ''' Starts generator for caps of dataset '''
@@ -348,8 +411,9 @@ def start_book_parser(path):
     try:
         def parse_book():
             cmd = ['python2.7', 
-                os.path.join('parse_book.py'), 
+                os.path.join('handle_book.py'), 
                 path,
+                '-i',
                 '--temp={}'.format(os.path.join(config['IDB_FOLDER'], 'temp')),
                 '--db_file={}'.format(os.path.join(config['IDB_FOLDER'], config['IDB_FILE']))]
             subprocess.Popen(cmd)
@@ -358,3 +422,13 @@ def start_book_parser(path):
         return True
     except:
         return False
+
+def export_book(loisID, path):
+    ''' Exports the book with the new captions '''
+    
+    handle_book.handle_export({
+        'loisid': loisID,
+        'filename': path,
+        'temp_dir': os.path.join(config['IDB_FOLDER'], 'temp'),
+        'db_file': os.path.join(config['IDB_FOLDER'], config['IDB_FILE']),
+    })

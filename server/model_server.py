@@ -22,11 +22,18 @@ import skimage.io
 import skimage.util
 
 from PIL import Image
+from preprocessor import Preprocessor
+from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
+from sklearn.decomposition import TruncatedSVD
+from sklearn.preprocessing import Normalizer
+from sklearn.pipeline import make_pipeline
+from gensim.models import Word2Vec
 
 from IPython import embed
 
 import sys
 sys.path.insert(0, '/home/flipvanrijn/Workspace/Dedicon-Thesis/models/attention/')
+
 
 class ImageServer(SocketServer.ThreadingTCPServer):
     ''' Generates a caption from an image '''
@@ -38,8 +45,10 @@ class ImageServer(SocketServer.ThreadingTCPServer):
 
         print 'Loading options...'
         self._load_options()
-
         self._load_capgen()
+        if 'tex_dim' in self.options:
+            print 'Loading text preprocessor...'
+            self._load_text_preprocessor(args)
 
         print 'Loading dictionary...'
         self._load_worddict()
@@ -59,6 +68,7 @@ class ImageServer(SocketServer.ThreadingTCPServer):
         3: loading CNN
         4: building model
         5: done
+        6: loading preprocessor
         '''
         json.dump({'status': status}, open('{}_runningstatus.json'.format(self.model), 'w'))
 
@@ -82,19 +92,41 @@ class ImageServer(SocketServer.ThreadingTCPServer):
         ''' Load the worddict '''
         self._update_status(2)
 
-        with open('/media/Data/flipvanrijn/datasets/coco/processed/full/dictionary.pkl', 'rb') as f:
-            self.worddict = pkl.load(f)
+        self.dictionary = dict()
+        for kk, vv in self.options['dictionary'].iteritems():
+            self.dictionary[vv] = kk
+        self.dictionary[0] = '<eos>'
+        self.dictionary[1] = 'UNK'
 
-        self.word_idict = dict()
-        for kk, vv in self.worddict.iteritems():
-            self.word_idict[vv] = kk
-        self.word_idict[0] = '<eos>'
-        self.word_idict[1] = 'UNK'
+    def _load_text_preprocessor(self, args):
+        ''' Load the preprocessor for the context '''
+        self._update_status(6)
+        self.text_preprocessor = Preprocessor()
 
-    # From author Kelvin Xu:
-    # https://github.com/kelvinxu/arctic-captions/blob/master/alpha_visualization.ipynb
+        # Load preprocessors based on type of model
+        ## TF-IDF:
+        if 'tfidf' in self.options['preproc_type']:
+            print 'Loading TF-IDF model...'
+            with open(args.tfidfmodel, 'rb') as f_tfidf, open(args.svdmodel, 'rb') as f_svd:
+                tfidf_model = pkl.load(f_tfidf)
+                svd_model   = pkl.load(f_svd) if 'with_svd' in self.options['preproc_params'] else None
+                self.text_preprocessor.set_tfidf(tfidf_model, svd_model)
+        ## Word2Vec:
+        if 'w2v' in self.options['preproc_type']:
+            print 'Loading Word2Vec model...'
+            w2v_model = Word2Vec.load_word2vec_format(args.w2vmodel, binary=True)
+            self.text_preprocessor.set_w2v(w2v_model)
+        ## Raw:
+        if 'raw' in self.options['preproc_type']:
+            print 'Loading counter model...'
+            with open(args.rawmodel, 'rb') as f_raw:
+                raw_model = pkl.load(args.rawmodel)
+                self.text_preprocessor.set_raw(raw_model)
+
     def resize_image(self, image, resize=256, crop=224):
         ''' Resizes and crops the  image '''
+        # From author Kelvin Xu:
+        # https://github.com/kelvinxu/arctic-captions/blob/master/alpha_visualization.ipynb
         width, height = image.size
 
         if width > height:
@@ -106,9 +138,10 @@ class ImageServer(SocketServer.ThreadingTCPServer):
         left = (width  - crop) / 2
         top  = (height - crop) / 2
         image_resized = image.resize((width, height), Image.BICUBIC).crop((left, top, left + crop, top + crop))
-        data = np.array(image_resized.convert('RGB').getdata()).reshape(crop, crop, 3)
+        image_resized = image_resized.convert('RGB')
+        data = np.array(image_resized.getdata()).reshape(crop, crop, 3)
 
-        return data
+        return (image_resized, data)
 
     def _load_cnn(self):
         ''' Loads the CNN for image encoding '''
@@ -158,7 +191,7 @@ class ImageServer(SocketServer.ThreadingTCPServer):
             if self.options['selector']:
                 self.f_selts = theano.function(inps, opt_outs['selectort'], name='f_selts', updates=hard_attn_updates)
 
-    def preprocess(self, img):
+    def preprocess_img(self, img):
         ''' Preprocess image '''
         img  = img.copy()
 
@@ -169,6 +202,13 @@ class ImageServer(SocketServer.ThreadingTCPServer):
         data = data[(2, 1, 0), :, :]
 
         return data
+
+    def preprocess_text(self, text):
+        ''' Preprocess text '''
+        # Shady part: Dynamically get method based on options (do_tfidf/do_w2v/do_w2vtfidf/do_raw)
+        transformer = getattr(self.text_preprocessor, 'do_{}'.format(self.options['preproc_type']))
+        # then dynamically plug the parameters into the method
+        return transformer(text, **self.options['preproc_params']).astype(np.float32)
 
     def forward_img(self, data):
         ''' Forward image into the CNN to get encoded image '''
@@ -202,73 +242,121 @@ class ImageHandler(SocketServer.BaseRequestHandler):
     def handle(self):
         '''
         Expects: pickled({
-            pixels: bytestring,
-            mode: string 'RGB',
-            size: tuple,
-            file_path: string,
-            k: integer,
-            OPTIONAL -- text_context: numpy array,
+            img: {
+                pixels: bytestring,
+                mode: string 'RGB',
+                size: tuple,
+            },
+            text: string,
+            introspect_image: bool,
+            introspect_context: bool,
+            output_path: string,
+            num_captions: integer,
+        })
+
+        Returns: pickled({
+            captions: list,
+            with_text_context: bool,
+            ?tau: numpy array
+
         })
         '''
         data = self.recv_msg() # raw pickled data
 
-        unpickled           = pkl.loads(data) # raw unpicled data
-        file_path           = unpickled['file_path']
-        introspect = unpickled['introspect'] # Whether to generate the alpha images for introspection
-        reconstructed_img   = Image.frombytes(unpickled['mode'], unpickled['size'], unpickled['pixels'])
-        img                 = self.server.resize_image(reconstructed_img)
-        img_preprocessed    = self.server.preprocess(img)
-        img_context         = self.server.forward_img(img_preprocessed) # Image context of the model
-        num_samples         = unpickled['k'] if 'k' in unpickled.keys() else 1
-        if 'tex_dim' in self.server.options:
-            text_context = unpickled['text_context']
+        unpkl               = pkl.loads(data) # raw unpicled input data
+        introspect_image    = unpkl['introspect_image'] # whether to generate the alpha images for introspection
+        introspect_context  = unpkl['introspect_context'] # whether to return tau for context introspection
+        img                 = Image.frombytes(unpkl['img']['mode'], unpkl['img']['size'], unpkl['img']['pixels'])
+        image_resized, data = self.server.resize_image(img)
+        img_preprocessed    = self.server.preprocess_img(data) # preprocess image with CNN
+        img_context         = self.server.forward_img(img_preprocessed) # image context of the model
+        num_captions        = unpkl['num_captions'] if 'num_captions' in unpkl.keys() else 1
+        with_text_context   = 'tex_dim' in self.server.options
 
-            samples, score = self.server.capgen.gen_sample(self.server.tparams, self.server.f_init, self.server.f_next, img_context, text_context, 
-                                              self.server.options, trng=self.server.trng, k=num_samples, maxlen=200, stochastic=False)
+        if with_text_context:
+            text_context = self.server.preprocess_text(unpkl['text'])
+
+            samples, score = self.server.capgen.gen_sample(
+                self.server.tparams, self.server.f_init, self.server.f_next, img_context, text_context, 
+                self.server.options, trng=self.server.trng, k=num_captions, maxlen=200, stochastic=False)
         else:
-            samples, score = self.server.capgen.gen_sample(self.server.tparams, self.server.f_init, self.server.f_next, img_context, 
-                                              self.server.options, trng=self.server.trng, k=num_samples, maxlen=200, stochastic=False)
+            samples, score = self.server.capgen.gen_sample(
+                self.server.tparams, self.server.f_init, self.server.f_next, img_context, 
+                self.server.options, trng=self.server.trng, k=num_captions, maxlen=200, stochastic=False)
 
         captions = []
         for sample in samples:
             caption = sample[:-1]
 
-            words = map(lambda w: self.server.word_idict[w] if w in self.server.word_idict else '<UNK>', caption)
+            words = map(lambda w: self.server.dictionary[w] if w in self.server.dictionary.keys() else '<UNK>', caption)
             captions.append(' '.join(words))
 
-        if introspect:
-            # Generate the alpha images, e.g. what the model 'sees'
-            alpha = self.server.f_alpha(np.array(caption).reshape(len(caption),1), 
-                np.ones((len(caption),1), dtype='float32'), 
-                img_context.reshape(1,img_context.shape[0],img_context.shape[1]))
-            if self.server.options['selector']:
-                sels = self.server.f_sels(np.array(caption).reshape(len(caption),1), 
+        ret = {
+            'captions': captions,
+            'with_text_context': with_text_context,
+        }
+
+        if introspect_context or introspect_image:
+            if with_text_context:
+                if introspect_image:
+                    # Generate the alpha images, e.g. what the model 'sees'
+                    alpha = self.server.f_alpha(
+                        np.array(caption).reshape(len(caption),1), 
+                        np.ones((len(caption),1), dtype='float32'), 
+                        img_context.reshape(1,img_context.shape[0],img_context.shape[1]),
+                        text_context.reshape(1,text_context.shape[0],text_context.shape[1]))
+                if introspect_context:
+                    # Generate the tau scores
+                    tau = self.server.f_tau(
+                        np.array(caption).reshape(len(caption), 1),
+                        np.ones((len(caption),1),dtype='float32'),
+                        img_context.reshape(1,img_context.shape[0],img_context.shape[1]),
+                        text_context.reshape(1,text_context.shape[0],text_context.shape[1]))
+                    ret['tau'] = tau
+            else:
+                if introspect_image:
+                    output_path         = unpkl['output_path'].rstrip('/') # output path for introspect images
+
+                    alpha = self.server.f_alpha(
+                        np.array(caption).reshape(len(caption),1), 
                         np.ones((len(caption),1), dtype='float32'), 
                         img_context.reshape(1,img_context.shape[0],img_context.shape[1]))
 
-            filename = os.path.split(file_path)[1]
-            img = img.astype('uint8')
-            plt.subplot()
-            plt.imshow(img)
-            plt.axis('off')
-            plt.savefig('static/images/{}'.format(filename))
-                    
-            for i, data in enumerate(zip(words, sels)):
-                word, score = data
-                if self.server.options['selector']:
-                    word += '(%0.2f)' % score
-                
-                    # Upscale alpha weights to 224 x 224
-                    alpha_img = skimage.transform.pyramid_expand(alpha[i,0,:].reshape(14,14), upscale=16, sigma=20)
+                    if self.server.options['selector']:
+                        if with_text_context:
+                            sels = self.server.f_sels(np.array(caption).reshape(len(caption),1), 
+                                    np.ones((len(caption),1), dtype='float32'), 
+                                    img_context.reshape(1,img_context.shape[0],img_context.shape[1]),
+                                    text_context.reshape(1,text_context.shape[0],text_context.shape[1]))
+                        else:
+                            sels = self.server.f_sels(np.array(caption).reshape(len(caption),1), 
+                                    np.ones((len(caption),1), dtype='float32'), 
+                                    img_context.reshape(1,img_context.shape[0],img_context.shape[1]))
+
+                    out_directory, out_filename = os.path.split(output_path)
                     plt.subplot()
-                    plt.imshow(img)
-                    plt.imshow(alpha_img, alpha=0.8)
+                    plt.imshow(image_resized)
                     plt.axis('off')
-                    plt.set_cmap(cm.Greys_r)
-                    plt.savefig('static/images/{}_{}'.format(i, filename))
+                    plt.savefig('{}/{}'.format(out_directory, out_filename))
+                            
+                    for i, data in enumerate(zip(words, sels)):
+                        word, score = data
+                        if self.server.options['selector']:
+                            word += '(%0.2f)' % score
+                        
+                            # Upscale alpha weights to 224 x 224
+                            alpha_img = skimage.transform.pyramid_expand(alpha[i,0,:].reshape(14,14), upscale=16, sigma=20)
+                            plt.subplot()
+                            plt.imshow(image_resized)
+                            plt.imshow(alpha_img, alpha=0.8)
+                            plt.axis('off')
+                            plt.set_cmap(cm.Greys_r)
+                            plt.savefig('{}/{}_{}'.format(out_directory, i, out_filename))
 
         # send back the description
-        self.request.sendall(' '.join(words))
+        ret = pkl.dumps(ret)
+        ret_packed = struct.pack('>I', len(ret)) + ret
+        self.request.sendall(ret_packed)
 
 def main(args):
     server  = ImageServer((args.host, args.port), ImageHandler, args)
@@ -283,7 +371,10 @@ if __name__ == '__main__':
     parser.add_argument('--options', dest='options', help='options file', type=str)
     parser.add_argument('--host', dest='host', default='localhost', help='Output directory', type=str)
     parser.add_argument('--port', dest='port', default=9999, type=int, help='port')
-
+    parser.add_argument('--w2vmodel', dest='w2vmodel', help='word2vec model file', type=str)
+    parser.add_argument('--tfidfmodel', dest='tfidfmodel', help='tfidf model file', type=str)
+    parser.add_argument('--svdmodel', dest='svdmodel', help='svd model file', type=str)
+    parser.add_argument('--rawmodel', dest='rawmodel', help='raw model file', type=str)
     args = parser.parse_args()
 
     main(args)
