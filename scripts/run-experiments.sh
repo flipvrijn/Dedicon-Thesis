@@ -4,7 +4,10 @@
 #sh ./experiments/experiment-tfidf.sh
 
 # TF-IDF without stemming
-sh ./experiments/experiment-tfidf-wo-stemming.sh
+#sh ./experiments/experiment-tfidf-wo-stemming.sh
+
+# TF-IDF without LSA
+sh ./experiments/experiment-tfidf-wo-lsa.sh
 
 # W2V + TF-IDF
 #sh ./experiments/experiment-w2v1ntfidf.sh
@@ -22,4 +25,4 @@ sh ./experiments/experiment-tfidf-wo-stemming.sh
 #sh ./experiments/experiment-rnn.sh
 
 # Baseline
-sh ./experiments/experiment-baseline.sh
+#sh ./experiments/experiment-baseline.sh
