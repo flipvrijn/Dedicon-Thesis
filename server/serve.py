@@ -10,9 +10,10 @@ import numpy as np
 import shutil
 import pandas as pd
 import sqlite3
+import logging
 
 import flask
-from flask import Flask, render_template, request, url_for, redirect
+from flask import Flask, render_template, request, url_for, redirect, send_from_directory
 from flask.ext.navigation import Navigation
 from werkzeug import secure_filename
 
@@ -29,6 +30,9 @@ config_file = 'config.pkl'
 with open(config_file) as f_config:
     config = cPickle.load(f_config)
 
+# Start logging
+logging.basicConfig(level=logging.DEBUG, filename='logs/server.log', mode='w')
+
 # Start Flask
 app = Flask(__name__)
 app.config.update(config)
@@ -41,9 +45,6 @@ nav.Bar('top', [
         nav.Item('Status trainen', 'status_training'),
         nav.Item('Test model', 'test_model'),
         nav.Item('Metrieken', 'metrics'),
-    ]),
-    nav.Item('Dataset', 'dataset', url='#', items=[
-        nav.Item('Context valideren', 'context'),
     ]),
     nav.Item('iDB', 'idb', url='#', items=[
         nav.Item('Overzicht', 'idb_index'),
@@ -68,7 +69,7 @@ building_status_to_text = {
     10: ('valideren', 'active'),
     11: ('klaar', 'success'),
     12: ('gecrashed', 'danger'),
-    13: ('gestopt', 'danger'),
+    13: ('gestopt', 'warning'),
 }
 
 # Mapping of status code to text from models
@@ -80,6 +81,7 @@ running_status_to_text = {
     3: 'CNN laden',
     4: 'model bouwen',
     5: 'klaar',
+    6: 'tekst voorbewerker laden',
 }
 
 @app.route('/')
@@ -88,6 +90,16 @@ def overview_models():
     models = utils.get_models()
 
     return render_template('models.html', models=models)
+
+@app.route('/models/rename', methods=['POST'])
+def models_rename():
+    ''' Renames a model '''
+    old_name = request.form['old_name']
+    new_name = request.form['name'] + '.npz'
+
+    utils.rename_model(old_name, new_name)
+
+    return redirect(url_for('overview_models'))
 
 # ----------------------------------------------------------
 # -----------------------Manage model training--------------
@@ -101,7 +113,6 @@ def status_training():
     files.sort(key=lambda x: os.stat(x).st_mtime, reverse=True)
     one_training = False
     for f in files:
-        print f
         filename = os.path.split(f)[1]
         name     = filename.split('_status')[0]
         training = utils.check_model_training(name)
@@ -130,12 +141,31 @@ def status_training():
 
     return render_template('status.html', files=status_files, one_training=one_training)
 
-@app.route('/training/start/<name>/<type>')
-def start_training(name, model_type):
+@app.route('/training/start', methods=['POST'])
+def start_training():
     ''' Starts a model for training '''
-    print 'Starting the model {}'.format(name)
+    name         = request.form['model_name']
+    model_type   = request.form['type']
+    data_folder  = request.form['data_folder']
+    data_type    = request.form['data_type']
+    extra_params = request.form['params']
+
+    params = {}
+    for key in request.form.keys():
+        if key.startswith('{}:'.format(data_type)):
+            _, param_name = key.split(':')
+            for value in request.form.getlist(key):
+                params[param_name] = value
+
+    logging.debug('Starting the model {}'.format(name))
     if not utils.training_model_name() and model_type in ['t_attn', 'normal']:
-        status = utils.start_training(name, model_type)
+        status = utils.start_training(
+            model_name=name, 
+            model_type=model_type, 
+            data_folder=data_folder, 
+            data_type=data_type,
+            data_type_params=params,
+            extra_params=extra_params)
 
     return redirect(url_for('status_training'))
 
@@ -143,7 +173,7 @@ def start_training(name, model_type):
 def stop_training(name):
     ''' Stops a model being trained '''
     if utils.check_model_training(name):
-        print 'Stop training model {}'.format(name)
+        logging.debug('Stop training model {}'.format(name))
         status = utils.stop_training(name)
 
         # Change status file
@@ -200,8 +230,10 @@ def metrics():
     with open(app.config['METRICS_FILE'], 'r') as f:
         metrics = json.load(f)
 
+    metrics = OrderedDict(sorted(metrics.items(), key=lambda t: t[0]))
+
     # Get all available hypotheses
-    hypotheses_files = glob.glob(os.path.join(app.config['MODELS_FOLDER'], '*.hypotheses.txt'))
+    hypotheses_files = sorted(glob.glob(os.path.join(app.config['MODELS_FOLDER'], '*.hypotheses.txt')))
     generating_hypos = utils.generating_caps()
 
     # Mark the best method for each metric
@@ -295,7 +327,7 @@ def start_model(name):
     ''' Start a model based on a name '''
     status = False
     if not utils.check_model_running(name):
-        print 'Starting model {}'.format(name)
+        logging.debug('Starting model {}'.format(name))
         status = utils.start_model(name)
 
     return flask.jsonify(**{'status': status})
@@ -305,11 +337,11 @@ def stop_model(name):
     ''' Stop a model based on a name '''
     status = False
     if utils.check_model_running(name):
-        print 'Stopping model {}'.format(name)
+        logging.debug('Stopping model {}'.format(name))
         status = utils.stop_model(name)
 
         # Change status file
-        json.dump({'status': 0}, open('{}/{}_runningstatus.json'.format(models_directory, name), 'w'))
+        json.dump({'status': 0}, open('{}/{}_runningstatus.json'.format(config['MODELS_FOLDER'], name), 'w'))
 
     return flask.jsonify(**{'status': status})
 
@@ -328,14 +360,11 @@ def status_model(name):
 def test_model():
     ''' Renders page for testing the model '''
     name = utils.running_model_name()
-    if name:
-        status = utils.status_model(name)
-        status_text = running_status_to_text[status]
-    else:
-        status = None
-        status_text = None
+    status = utils.status_model(name) if name else None
+    status_text = running_status_to_text[status] if name else None
+    with_context = 'tex_dim' in utils.get_model_options(name) if name else None
 
-    return render_template('test.html', name=name, status=status, status_text=status_text)
+    return render_template('test.html', name=name, status=status, status_text=status_text, with_context=with_context)
 
 @app.route('/image/random/<introspect>')
 def random_image(introspect):
@@ -348,8 +377,12 @@ def random_image(introspect):
     src_path = os.path.join(app.config['IMAGES_FOLDER'], 'val', random_image)
     new_file = '{}.jpg'.format(time.time())
     dest_path = os.path.join('static', 'images', new_file)
+    dest_full_path = os.path.join('static', 'images', 'full-'+new_file)
 
+    shutil.copy(src_path, dest_full_path)
     shutil.copy(src_path, dest_path)
+
+    utils.resize_image(dest_path)
 
     introspect = bool(int(introspect))
 
@@ -358,7 +391,7 @@ def random_image(introspect):
 
         return flask.jsonify(**{'caption': caption.split(' '), 'image': new_file, 'n': len(caption.split(' ')), 'introspect': introspect})
     except Exception, e:
-        print 'Querying model failed: ' + str(e)
+        logging.debug('Querying model failed: ' + str(e))
         
         return flask.jsonify(**{'error': str(e)})    
 
@@ -371,14 +404,17 @@ def upload_image():
         dest_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         f.save(dest_path)
 
+        utils.resize_image(dest_path)
+
         introspect = bool(int(request.form['introspect']))
+        context = request.form['context'] if request.form['context'] else None
 
         try:
-            caption = utils.query_model(dest_path, introspect=introspect)
+            caption = utils.query_model(dest_path, introspect=introspect, text=context)
 
             return flask.jsonify(**{'caption': caption.split(' '), 'image': filename, 'n': len(caption.split(' ')), 'introspect': introspect})
         except Exception, e:
-            print 'Querying model failed: ' + str(e)
+            logging.debug('Querying model failed: ' + str(e))
 
             return flask.jsonify(**{'error': str(e)})
 
@@ -391,7 +427,7 @@ def attention_image(image):
 
         return flask.jsonify(**{'caption': caption.split(' '), 'image': image, 'n': len(caption.split(' ')), 'introspect': True})
     except Exception, e:
-        print 'Querying model failed: ' + str(e)
+        logging.debug('Querying model failed: ' + str(e))
 
         return flask.jsonify(**{'error': str(e)})
 
@@ -418,6 +454,8 @@ def parse_book():
         book_file.save(book_dest_path)
 
         utils.start_book_parser(book_dest_path)
+
+        return redirect(url_for('idb_index'))
 
     return render_template('idb_parse_book.html')
 
@@ -446,6 +484,36 @@ def idb_validate_book(loisID):
     shutil.copy(source_img, dest_img)
 
     return render_template('idb_validate_book.html', row=row)
+
+@app.route('/idb/export/<loisID>')
+def idb_export_book(loisID):
+    filename = '{}.zip'.format(loisID)
+    utils.export_book(loisID, os.path.join(config['UPLOAD_FOLDER'], filename))
+
+    return send_from_directory(config['UPLOAD_FOLDER'], filename=filename)
+
+
+@app.route('/idb/remove/<loisID>')
+def idb_remove_book(loisID):
+    conn = sqlite3.connect(config['IDB_FILE'])
+    cur  = conn.cursor()
+
+    # Select images from book
+    cur.execute("SELECT img FROM images WHERE lois_id = ?", (loisID,))
+    rows = cur.fetchall()
+
+    # Delete the book from the database
+    cur.execute("DELETE FROM images WHERE lois_id = ?", (loisID,))
+    conn.commit()
+    conn.close()
+
+    # Delete images
+    for row in rows:
+        path = os.path.join(config['IDB_FOLDER'], 'images', row[0])
+        if os.path.exists(path):
+            os.remove(path)
+
+    return redirect(url_for('idb_index'))
 
 if __name__ == '__main__':
     app.run()

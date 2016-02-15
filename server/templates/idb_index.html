@@ -14,14 +14,19 @@
 				<th># plaatjes met caption</th>
 				<th># gevalideerd</th>
 				<th># goedgekeurd</th>
+				<th>Acties</th>
 			</tr>
 			{% for row in rows %}
 			<tr>
-				<td><a href="idb/validate/{{ row[0] }}">{{ row[0] }}</a></td>
+				<td><a href="{{ url_for('idb_validate_book', loisID=row[0]) }}">{{ row[0] }}</a></td>
 				<td>{{ row[1] }}</td>
 				<td>{{ row[2] }}</td>
 				<td>{{ row[3] }}</td>
 				<td>{{ row[4] }}</td>
+				<td>
+					<a href="{{ url_for('idb_export_book', loisID=row[0]) }}" class="btn btn-info"><span class="glyphicon glyphicon-export"></span> Exporteer</a>
+					<a href="{{ url_for('idb_remove_book', loisID=row[0]) }}" class="btn btn-danger"><span class="glyphicon glyphicon-remove"></span> Verwijderen</a>
+				</td>
 			</tr>
 			{% endfor %}
 		</table>
