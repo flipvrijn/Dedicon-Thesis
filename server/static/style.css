@@ -99,5 +99,9 @@ li > .nav li {
 #btn-with-attention {
   position: absolute;
   right: 30px;
-  top: 10px;
+  top: 70px;
+}
+
+img#resulting-alpha-image, img#resulting-image {
+  max-width: 224px;
 }

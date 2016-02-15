@@ -3,7 +3,7 @@
 	<h1>Status trainen</h1>
 	<p>Een lijst met alle statussen van de modellen die op dit moment aan het trainen zijn.</p>
 
-	<button data-toggle="modal" data-target="#start-training-modal" class="btn btn-success" {{ 'disabled="disabled"' if one_training else '' }}>
+	<button data-toggle="modal" data-target="#start-training-modal" class="btn btn-success" {{ 'disabled="disabled"' if not one_training else '' }}>
 		<span class="glyphicon glyphicon-plus"></span> Model trainen
 	</button>
 
@@ -77,33 +77,92 @@
 	{% endif %}
 
 	<div id="start-training-modal" class="modal">
-	  <div class="modal-dialog modal-sm">
+	  <div class="modal-dialog modal-md">
 	    <div class="modal-content">
 	      <div class="modal-header">
 	        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
 	        <h4 class="modal-title">Model trainen</h4>
 	      </div>
 	      <div class="modal-body">
-	        <form class="form">
+	        <form class="form" action="/training/start" method="POST">
 	        	<div class="form-group">
-	        		<label class="control-label">Type model</label>
-	        		<select name="type" class="form-control">
+	        		<label class="control-label">Model naam</label>
+	        		<div class="input-group">
+	        			<input type="text" class="form-control" name="model_name">
+	        			<span class="input-group-addon">.npz</span>
+	        		</div>
+	        	</div>
+	        	<div class="form-group">
+	        		<label class="control-label">Model type</label>
+	        		<select name="type" id="model-type-select" class="form-control">
 	        			<option value="normal">Zonder context</option>
 	        			<option value="t_attn">Met context</option>
 	        		</select>
 	        	</div>
-	        	<div class="form-group">
-	        		<label class="control-label">Model naam</label>
-	        		<div class="input-group">
-	        			<input type="text" class="form-control" name="model_name" placeholder="Naam">
-	        			<span class="input-group-addon">.npz</span>
+	        	<div id="data-type" class="form-group">
+	        		<label class="control-label">Data type</label>
+	        		<input type="hidden" name="data_type" value="raw">
+	        		<ul id="data-type-select" class="nav nav-tabs">
+	        			<li role="presentation" class="active"><a href="#raw" data-toggle="tab">Ruw context</a></li>
+	        			<li role="presentation"><a href="#tfidf" data-toggle="tab">TF-IDF</a></li>
+	        			<li role="presentation"><a href="#w2v" data-toggle="tab">Word2Vec</a></li>
+	        			<li role="presentation"><a href="#w2vtfidf" data-toggle="tab">Word2Vec &amp; TF-IDF</a></li>
+	        		</ul>
+
+	        		<div class="tab-content">
+	        			<!-- Raw -->
+	        			<div role="tabpanel" class="tab-pane active" id="raw">
+			        		<p>Geen parameters nodig</p>
+	        			</div>
+	        			<!-- TFIDF -->
+	        			<div role="tabpanel" class="tab-pane" id="tfidf">
+		        			<div class="form-group">
+			        			<label class="control-label">Met SVD</label>
+			        			<select name="tfidf:with_svd" class="form-control">
+			        				<option value="1">Ja</option>
+			        				<option value="0">Nee</option>
+			        			</select>
+			        		</div>
+			        		<div class="from-group">
+			        			<label class="control-label">De stam nemen</label>
+			        			<select name="tfidf:with_stemming" class="form-control">
+			        				<option value="1">Ja</option>
+			        				<option value="0">Nee</option>
+			        			</select>
+			        		</div>
+		        		</div>        		
+		        		<!-- Word2Vec -->
+		        		<div role="tabpanel" class="tab-pane" id="w2v">
+		        			<div class="form-group">
+			        			<label class="control-label">Grootte n-gram</label>
+			        			<select name="w2v:n" class="form-control">
+			        				<option value="1">Unigram (1)</option>
+			        				<option value="2">Bigram (2)</option>
+			        				<option value="3">Trigram (3)</option>
+			        			</select>
+			        		</div>
+		        		</div>
+		        		<!-- Word2Vec & TF-IDF -->
+		        		<div role="tabpanel" class="tab-pane" id="w2vtfidf">
+		        			<div class="form-group">
+			        			<label class="control-label">Aantal beste woorden</label>
+			        			<input name="w2vtfidf:n_best" class="form-control" type="text" value="150">
+			        		</div>
+		        		</div>
 	        		</div>
 	        	</div>
+	        	<div class="form-group">
+	        		<label class="control-label">Data folder</label>
+	        		<input type="text" class="form-control" name="data_folder">
+	        	</div>
+	        	<div class="form-group">
+	        		<label class="control-label">Extra parameters</label>
+	        		<input type="text" class="form-control" name="params">
+	        	</div>
+	        	<div class="form-group">
+	        		<input type="submit" value="Start trainen" class="btn btn-primary">
+	        	</div>
 	        </form>
-	      </div>
-	      <div class="modal-footer">
-	        <button type="button" class="btn btn-default" data-dismiss="modal">Annuleren</button>
-	        <button type="button" id="start-training" class="btn btn-primary" data-dismiss="modal">Start!</button>
 	      </div>
 	    </div><!-- /.modal-content -->
 	  </div><!-- /.modal-dialog -->

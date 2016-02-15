@@ -37,6 +37,14 @@ $(function() {
 		});
 	});
 
+	// Set current name
+	$('td').on('click', 'a.rename-model', function() {
+		var model_name = $(this).attr('data-name');
+
+		$('#rename-model-modal').find('input[name="old_name"]').val(model_name);
+		$('#rename-model-modal').find('input[name="name"]').val(model_name.split('.npz')[0]);
+	});
+
 	// ---------------- Training status ----------------
 
 	// Generating a sparkline from data
@@ -48,6 +56,12 @@ $(function() {
 		});
 	});
 
+	// Mouseover samples tabs
+	$('body').on('mouseover', '.samples-tab a', function() {
+		$(this).tab('show');
+	});
+
+	// Handle start training button
 	$('div.modal').on('click', 'button#start-training', function() {
 		var model_name = $('body').find('input[name="model_name"]').val()
 		if (model_name) {
@@ -55,9 +69,19 @@ $(function() {
 		}
 	});
 
-	// Mouseover samples tabs
-	$('body').on('mouseover', '.samples-tab a', function() {
-		$(this).tab('show');
+	// Dynamic form handling
+	$('#data-type').hide(); // Default: hide
+
+	$('#model-type-select').change(function() {
+		if ($(this).val() == 't_attn') {
+			$('#data-type').show();
+		} else {
+			$('#data-type').hide();
+		}
+	});
+
+	$('a[data-toggle="tab"]').on('show.bs.tab', function(e) {
+		$('input[name="data_type"]').val($(e.target).attr('href').slice(1));
 	});
 
 	// ---------------- Test model ----------------
@@ -90,12 +114,10 @@ $(function() {
 		// Waiting icon
 		$('img#random-image-processing').show();
 
-		var introspect = ($('input#introspect').prop('checked')) ? 1 : 0
-
 		$.ajax({
 			method: 'GET',
 			dataType: 'json',
-			url: '/image/random/' + introspect,
+			url: '/image/random/0',
 		}).done(function(response) {
 			handle_image_response(response);
 		});
@@ -132,12 +154,29 @@ $(function() {
 	// Initialize the dropzone element
 	Dropzone.autoDiscover = false;
 	$("#image-dropzone").dropzone({
+		autoProcessQueue: false,
+		init: function() {
+			imageDropzone = this;
+
+			$('body').on('click', 'a#send-query', function() {
+				imageDropzone.processQueue();
+			});
+		},
 		success: function(file, response) {
 			handle_image_response(response);
 		},
 		sending: function(file, xhr, formData) {
-			var introspect = ($('input#introspect').prop('checked')) ? 1 : 0
-			formData.append('introspect', introspect);
+			var elemContext = $('textarea[name="context"]');
+			var context = '';
+			if (elemContext) {
+				context = elemContext.val();
+			}
+			formData.append('introspect', 0);
+			formData.append('context', context)
+		},
+		complete: function(file) {
+			this.removeFile(file);
+			$('textarea[name="context"]').val('')
 		}
 	});
 

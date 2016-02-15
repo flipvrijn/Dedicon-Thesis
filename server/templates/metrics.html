@@ -42,6 +42,7 @@
 						{% endif %}
 					</div>
 					<div class="col-md-9">
+						<!--
 						<div class="btn-group">
 							<button class="btn dropdown-toggle btn-gen-hyp" {{ 'disabled="disabled"' if generating_hypos else ''}} data-toggle="dropdown">
 								Genereer hypotheses <span class="caret"></span>
@@ -54,6 +55,7 @@
 							</ul>
 						</div>
 						<span id="gen-hyp-error" class="col-md-offset-1 text-danger"></span>
+						-->
 					</div>
 				</div>
 			</div>
@@ -66,11 +68,13 @@
 						<input type="file" name="references_file" class="form-control">
 					</div>
 					<div class="col-md-9">
+						<!--
 						<button class="btn">
 							Genereer referenties
 							<img src="{{ url_for('static', filename='loader.gif') }}" id="gen-ref-loader" style="display:none">
 						</button>
 						<span id="gen-ref-error" class="col-md-offset-1 text-danger"></span>
+						-->
 					</div>
 				</div>
 			</div>

@@ -7,28 +7,35 @@
 	<p>Het model <strong>{{ name }}</strong> is nog niet klaar met opstarten. Huidige status: <strong>{{ status_text }}</strong>.</p>
 	{% else %}
 	<p>Op dit moment loopt het model <strong>{{ name }}</strong>.</p>
-	<p>Het is mogelijk om in te zien hoe het model 'kijkt': </p>
-	<label>
-		<input type="checkbox" id="introspect"> Zelfreflectie aanzetten		
-	</label>
 
 	<div class="row">
 		<div class="col-md-6">
+			{% if with_context %}
+			<h4>1. Willekeurig plaatje met context</h4>
+			{% else %}
 			<h4>1. Willekeurig plaatje</h4>
+			{% endif %}
 			<p>Klik op onderstaande knop en er wordt een willekeurig plaatje geselecteerd uit de dataset waarvan vervolgens een omschrijving genereerd wordt.</p>
 			<a class="btn" href="#" id="random-image-btn">
 				Selecteer <img src="{{ url_for('static', filename='loader.gif') }}" style="display: none;" id="random-image-processing">
 			</a>
 		</div>
 		<div class="col-md-6">
+			{% if with_context %}
+			<h4>2. Upload eigen plaatje met bijbehorende context</h4>
+			<p>Upload een eigen plaatje en voor de bijbehorende context in en laat daarvan een omschrijving genereren door het model.</p>
+			<form action="/image/upload" class="dropzone" id="image-dropzone">
+				<textarea name="context" placeholder="De context" class="form-control"></textarea>
+			{% else %}
 			<h4>2. Upload eigen plaatje</h4>
 			<p>Upload een eigen plaatje en laat daarvan een omschrijving genereren door het model.</p>
-
 			<form action="/image/upload" class="dropzone" id="image-dropzone">
+			{% endif %}
 				<div class="fallback">
 					<input type="file" name="file" />
 				</div>
 			</form>
+			<a class="btn pull-right" id="send-query">Versturen</a>
 		</div>
 	</div>
 
@@ -38,14 +45,18 @@
 				<p class="text-danger"></p>
 			</div>
 			<div class="thumbnail text-center">
-				<button id="btn-with-attention" class="btn btn-lg">
-					<span class="glyphicon glyphicon-eye-open"></span>
-					<span class="busy" style="display: none;">Bezig...</span>
-				</button>
-				<img src="" id="resulting-image">
-				<img src="" id="resulting-alpha-image" style="display: none;">
 				<div class="caption">
 					<p id="caption"></p>
+				</div>
+				<div class="thumb">
+					{% if not with_context %}
+					<button id="btn-with-attention" class="btn btn-lg">
+						<span class="glyphicon glyphicon-eye-open"></span>
+						<span class="busy" style="display: none;">Bezig...</span>
+					</button>
+					{% endif %}
+					<img src="" id="resulting-image">
+					<img src="" id="resulting-alpha-image" style="display: none;">
 				</div>
 			</div>
 		</div>
