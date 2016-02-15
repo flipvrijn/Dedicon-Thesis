@@ -44,6 +44,18 @@ def pipeline_w2vtfidf(titles, descriptions, tags, n_best=150):
 
         return ns, raw
 
+    def encode(model, stem2word, X):
+        feat = None
+        for i, ngram in enumerate(X):
+            words = ngram.split(' ')
+            vec = np.array([model[stem2word[w]] for w in words]).prod(axis=0)
+            if i == 0:
+                feat = vec
+            else:
+                feat = np.vstack((feat, vec))
+
+        return feat
+
     # Load Word2Vec model
     print 'Loading word2vec model...'
     t_model_start = time.time()
@@ -94,17 +106,6 @@ def pipeline_w2vtfidf(titles, descriptions, tags, n_best=150):
             [(tfidf_feature_names[pair[0]], pair[1]) for pair in zip(range(0, len(feats)), feats) if pair[1] > 0], 
             key=lambda x: x[1] * -1
         )[:n_best]
-
-        # extract relevant raw
-        tfidf_dict = dict(scores)
-        viz = []
-        for stemmed, raw in zip(context, context_raw):
-            if stemmed in tfidf_dict.keys():
-                viz.append((raw, tfidf_dict[stemmed]))
-            else:
-                viz.append((raw, 0))
-
-        embed()
 
         # Construct W2V feature matrix from the N best words
         features = np.zeros((n_best, 512), dtype=np.float32)
@@ -284,7 +285,7 @@ def pipeline_lsa(tfidf_matrix):
     lsa_mat   = lsa.fit_transform(tfidf_matrix)
 
     # Split the matrix up according to the dataset files
-    return lsa_mat
+    return lsa_mat, lsa
 
 def pipeline_pos(titles, descriptions, tags):
     def preprocess(inpt):
@@ -351,7 +352,7 @@ def pipeline_onehot(titles, descriptions, tags):
         bar.next()
     bar.finish()
 
-    return feat_flatten
+    return feat_flatten, vectorizer
 
 def main(args):
     if args.type == 'w2v' or args.type == 'w2vtfidf':
@@ -408,7 +409,7 @@ def main(args):
 
         # In case of LSA, also apply LSA to the TF-IDF matrix
         if args.type == 'lsa':
-            data = pipeline_lsa(data)
+            data, lsa = pipeline_lsa(data)
 
         embed()
         out = {
@@ -447,7 +448,7 @@ def main(args):
             all_descriptions += descriptions
             all_tags += tags
 
-        feats = pipeline_onehot(all_titles, all_descriptions, all_tags)
+        feats, vectorizer = pipeline_onehot(all_titles, all_descriptions, all_tags)
 
         out = {
             'data': feats.data,
