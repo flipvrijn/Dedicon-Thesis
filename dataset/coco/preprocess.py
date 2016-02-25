@@ -17,7 +17,7 @@ from IPython import embed
 
 processing_type = 'reduced' # either 'full'/'reduced'
 base_path='/media/Data/flipvanrijn/datasets/coco/processed/'+processing_type+'/'
-split_path='/media/Data/flipvanrijn/datasets/coco/processed/'+processing_type+'/splits/'
+split_path=base_path+'splits/'
 
 def load_sparse_csr(filename):
     loader = numpy.load(filename)
@@ -121,17 +121,6 @@ def main():
     features_sp = vstack((features_sp_train, features_sp_val), format='csr')
     print 'Done'
 
-    # loads the raw context (title, description, tags)
-    #def _load_raw_context(name):
-    #    raw_context = []
-    #    with open(base_path+name) as f:
-    #        titles = pkl.load(f)
-    #        descriptions = pkl.load(f)
-    #        tags = pkl.load(f)
-    #        for i in range(len(titles)):
-    #            raw_context.append((titles[i], descriptions[i], tags[i]))
-    #    return raw_context
-
     #print 'Loading raw context...'
     #train_raw_context = _load_raw_context('coco_train_context.pkl')
     #val_raw_context = _load_raw_context('coco_val_context.pkl')
@@ -139,11 +128,11 @@ def main():
     #print 'Done'
 
     ## final context feature map
-    #print 'Loading train context features...'
-    #features_ctx_train = load_sparse_csr(base_path+'train_context.npz')
-    #print 'Loading validation context features...'
-    #features_ctx_val = load_sparse_csr(base_path+'val_context.npz')
-    #features_ctx = vstack((features_ctx_train, features_ctx_val), format='csr')
+    print 'Loading train context features...'
+    features_ctx_train = load_sparse_csr(base_path+'context_train.npz')
+    print 'Loading validation context features...'
+    features_ctx_val = load_sparse_csr(base_path+'context_val.npz')
+    features_ctx = vstack((features_ctx_train, features_ctx_val), format='csr')
     
     #print 'Loading one-hot context features...'
     #features_ctx = load_sparse_csr(base_path+'context_onehot.npz')
@@ -153,8 +142,8 @@ def main():
     #features_ctx = loader['data']
     #print 'Done'
 
-    print 'Loading TF-IDF context features...'
-    features_ctx = load_sparse_csr(base_path+'tfidf_context_wo_lsa.npz')
+    #print 'Loading TF-IDF context features...'
+    #features_ctx = load_sparse_csr(base_path+'tfidf_context_wo_lsa.npz')
 
     def _build_data(flist):
         data_img = [None] * len(flist)

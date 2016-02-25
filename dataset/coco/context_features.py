@@ -30,7 +30,7 @@ from IPython import embed
 stop = stopwords.words('english')
 stemmer = SnowballStemmer('english')
 
-def pipeline_w2vtfidf(titles, descriptions, tags, n_best=150):
+def pipeline_w2vtfidf(titles, descriptions, tags, n=1, n_best=150):
     def preprocess(s):
         global stemmer
         
@@ -77,7 +77,7 @@ def pipeline_w2vtfidf(titles, descriptions, tags, n_best=150):
         stem2word[stem] = word
     print 'Built in {}s'.format(time.time() - t_stemming_start)
 
-    # Create feature vectors of context and only keep images WITH context
+    # Create feature vectors of context
     bar = Bar('Extracting features...', max=len(titles))
     for i in xrange(len(titles)):
         # Stem words and remove stopwords for title...
