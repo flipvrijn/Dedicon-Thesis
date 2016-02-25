@@ -275,6 +275,13 @@ $(function() {
 		$(this).closest('tr').remove();
 	});
 
+	// ---------------- Image Database ----------------
+	// Handle generating captions button click event
+	$('body').on('click', 'a#btn-gen-caps', function() {
+		var elem = $(this).find('img#gen-cap-loader');
+		elem.show();
+	});
+
 	// ---------------- Context validation ----------------
 	// Handle keyup events for context validation
 	if ($('div#context-wrapper').length) {

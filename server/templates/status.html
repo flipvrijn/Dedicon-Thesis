@@ -3,7 +3,7 @@
 	<h1>Status trainen</h1>
 	<p>Een lijst met alle statussen van de modellen die op dit moment aan het trainen zijn.</p>
 
-	<button data-toggle="modal" data-target="#start-training-modal" class="btn btn-success" {{ 'disabled="disabled"' if not one_training else '' }}>
+	<button data-toggle="modal" data-target="#start-training-modal" class="btn btn-success" {{ 'disabled="disabled"' if one_training else '' }}>
 		<span class="glyphicon glyphicon-plus"></span> Model trainen
 	</button>
 

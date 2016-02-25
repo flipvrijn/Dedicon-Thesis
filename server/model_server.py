@@ -32,8 +32,7 @@ from gensim.models import Word2Vec
 from IPython import embed
 
 import sys
-sys.path.insert(0, '/home/flipvanrijn/Workspace/Dedicon-Thesis/models/attention/')
-
+sys.path.insert(0, '../models/attention/')
 
 class ImageServer(SocketServer.ThreadingTCPServer):
     ''' Generates a caption from an image '''

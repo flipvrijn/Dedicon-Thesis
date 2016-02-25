@@ -58,13 +58,17 @@ class Preprocessor:
     def do_raw(self, text, with_stemming=False):
         assert self._raw is not None, "Raw model is not set"
 
+        # in case of no text
+        if not text:
+            return np.zeros((1, 512), dtype=np.int64)
+
         # Transform into count vector
         words = self.prepare_text(text, stem=with_stemming)
         doc = [' '.join(words)]
         vectorized = self._raw.transform(doc)
 
         # Limit vector to 512 dimensionality
-        output = np.zeros((1, 512), np.int64)
+        output = np.zeros((1, 512), dtype=np.int64)
         vec = np.array(vectorized[:512])
         output[0, :vec.shape[0]] = vec
 
@@ -75,6 +79,14 @@ class Preprocessor:
             Output size: 1 x 512 (with svd) or Y x 512 (without svd)
         '''
         assert self._tfidf is not None, "TF-IDF is not set"
+
+        # in case of no text 
+        if not text:
+            if with_svd:
+                return np.zeros((1, 512), dtype=np.int64)
+            else:
+                size = self._tfidf.vocabulary_ + (512 - self._tfidf.vocabulary_ % 512)
+                return np.zeros((size / 512, 512), dtype=np.int64)
 
         words = self.prepare_text(text, stem=with_stemming)
         doc = [' '.join(words)]
@@ -91,11 +103,16 @@ class Preprocessor:
             output = output.reshape((output.shape[1] / 512, 512))
         return output
 
-    def do_w2v(self, text, n=2, with_stemming=False):
+    def do_w2v(self, text, n=2, aggregate='prod', with_stemming=False):
         ''' Transforms text to a Word2Vec feature vector
-            Output size: Y x 512
+            Output size: 150 x 512
         '''
         assert self._w2v is not None, "Word2Vec is not set"
+        assert aggregate in ['prod', 'sum'], "Unknown aggregate"
+
+        # in case of no text
+        if not text:
+            return np.zeros((150, 512), dtype=np.int64)
 
         # Create n-grams
         X = []
@@ -107,7 +124,9 @@ class Preprocessor:
         # Transform n-grams to W2V
         output = None
         for i, ngram in enumerate(X):
-            vec = np.array([self._w2v[self._stem2word[w]] for w in ngram]).prod(axis=0)
+            mat = np.array([self._w2v[self._stem2word[w]] for w in ngram])
+            f_aggregate = getattr(mat, aggregate) # changes dynamically based on 'aggregate': sum/prod
+            vec = f_aggregate(axis=0)
             if i == 0:
                 output = vec 
             else:
@@ -123,8 +142,15 @@ class Preprocessor:
         return output
 
     def do_w2vtfidf(self, text, n_best=150):
+        ''' Transforms text to a Word2Vec feature vector using the "best words" using TF-IDF
+            Output size: 150 x 512
+        '''
         assert self._tfidf is not None, "TF-IDF is not set"
         assert self._w2v is not None, "Word2Vec is not set"
+
+        # in case of no text
+        if not text:
+            return np.zeros((n_best, 512), dtype=np.int64)
 
         tfidf_feature_names = self._tfidf.get_feature_names()
 

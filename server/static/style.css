@@ -105,3 +105,7 @@ li > .nav li {
 img#resulting-alpha-image, img#resulting-image {
   max-width: 224px;
 }
+
+img#gen-cap-loader {
+  display: none;
+}

@@ -24,6 +24,7 @@
 				<td>{{ row[3] }}</td>
 				<td>{{ row[4] }}</td>
 				<td>
+					<a id="btn-gen-caps" href="{{ url_for('idb_gen_caps', loisID=row[0]) }}" class="btn btn-primary" {{ 'disabled="disabled"' if not model_running else '' }}><span class="glyphicon glyphicon-comment"></span> Genereer captions <img src="/static/loader.gif" id="gen-cap-loader" /></a>
 					<a href="{{ url_for('idb_export_book', loisID=row[0]) }}" class="btn btn-info"><span class="glyphicon glyphicon-export"></span> Exporteer</a>
 					<a href="{{ url_for('idb_remove_book', loisID=row[0]) }}" class="btn btn-danger"><span class="glyphicon glyphicon-remove"></span> Verwijderen</a>
 				</td>

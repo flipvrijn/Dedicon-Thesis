@@ -439,12 +439,15 @@ def idb_index():
     conn = sqlite3.connect(config['IDB_FILE'])
     cur  = conn.cursor()
 
-    cur.execute("SELECT lois_id, COUNT(*), COUNT(*) - COUNT(caption), SUM(validated), SUM(valid) FROM images GROUP BY lois_id")
+    cur.execute("SELECT lois_id, COUNT(*), COUNT(caption), SUM(validated), SUM(valid) FROM images GROUP BY lois_id")
     rows = cur.fetchall()
 
     conn.close()
 
-    return render_template('idb_index.html', rows=rows)
+    # Check if a model is running
+    model_running = True if utils.running_model_name() else False
+
+    return render_template('idb_index.html', rows=rows, model_running=model_running)
 
 @app.route('/idb/parse', methods=['GET', 'POST'])
 def parse_book():
@@ -459,22 +462,48 @@ def parse_book():
 
     return render_template('idb_parse_book.html')
 
-@app.route('/idb/validate/<loisID>', methods=['GET', 'POST'])
-def idb_validate_book(loisID):
+@app.route('/idb/validate/<loisID>/', methods=['GET', 'POST'])
+@app.route('/idb/validate/<loisID>/<imgID>', methods=['GET', 'POST'])
+@app.route('/idb/validate/<loisID>/<imgID>/<direction>', methods=['GET', 'POST'])
+def idb_validate_book(loisID, imgID=None, direction=None):
     conn = sqlite3.connect(config['IDB_FILE'])
     cur  = conn.cursor()
 
-    # Update the record
+    # Process button presses
     if request.method == 'POST':
-        valid = 1 if 'btn_yes' in request.form else 0
-        caption = request.form['caption']
-        row_id = request.form['id']
-        cur.execute("UPDATE images SET caption = ?, valid = ?, validated = 1 WHERE id = ?", (caption, valid, row_id))
-        conn.commit()
+        if 'btn_generate' in request.form:
+            # Generate a caption from the image
+            row_id = request.form['id']
+            cur.execute("SELECT img FROM images WHERE id = ? AND lois_id = ?", (row_id, loisID,))
+            row = cur.fetchone()
+            dest_path = os.path.join(app.config['IDB_FOLDER'], 'images', row[0])
+            gen_cap = utils.query_model(dest_path, introspect=False)
 
-    # Select first entry that has not been validated yet for this loisID
-    cur.execute("SELECT * FROM images WHERE lois_id = ? AND validated = 0 LIMIT 1", (loisID,))
+            cur.execute("UPDATE images SET caption_gen = ? WHERE id = ?", (gen_cap, row_id,))
+            conn.commit()
+        else:
+            valid = 1 if 'btn_yes' in request.form else 0
+            caption = request.form['caption']
+            row_id = request.form['id']
+            cur.execute("UPDATE images SET caption = ?, valid = ?, validated = 1 WHERE id = ?", (caption, valid, row_id))
+            conn.commit()
+
+    if imgID and direction:
+        # Select next/previous entry
+        if direction == 'next':
+            cur.execute("SELECT * FROM images WHERE id > ? ORDER BY id LIMIT 1", (imgID,))
+        else:
+            cur.execute("SELECT * FROM images WHERE id < ? ORDER BY id DESC LIMIT 1", (imgID,))
+
+    else:
+        # Select first entry that has not been validated yet for this loisID
+        cur.execute("SELECT * FROM images WHERE lois_id = ? AND validated = 0 LIMIT 1", (loisID,))
+
     row = cur.fetchone()
+    if not row:
+        # Oh-owh, 'previous'/'next' row does not exist, so say with current
+        cur.execute("SELECT * FROM images WHERE id = ? AND lois_id = ?", (imgID, loisID,))
+        row = cur.fetchone()
 
     conn.close()
 
@@ -483,7 +512,30 @@ def idb_validate_book(loisID):
     dest_img   = os.path.join(config['UPLOAD_FOLDER'], row[2])
     shutil.copy(source_img, dest_img)
 
-    return render_template('idb_validate_book.html', row=row)
+    # Check if a model is running
+    model_running = True if utils.running_model_name() else False
+
+    # If generated caption, then append it to existing
+    caption = '\n'.join([row[4] if row[4] else '', 'Generated: ' + row[5] if row[5] else ''])
+
+    return render_template('idb_validate_book.html', row=row, loisID=loisID, caption=caption, model_running=model_running)
+
+@app.route('/idb/gen/<loisID>')
+def idb_gen_caps(loisID):
+    # TODO: Make this a background process!
+    conn = sqlite3.connect(config['IDB_FILE'])
+    cur  = conn.cursor()
+
+    # Get images from loisID and generate captions for all of them
+    cur.execute("SELECT id, img FROM images WHERE lois_id = ?", (loisID,))
+    for row in cur.fetchall():
+        dest_path = os.path.join(app.config['IDB_FOLDER'], 'images', row[1])
+        gen_cap = utils.query_model(dest_path, introspect=False)
+
+        cur.execute("UPDATE images SET caption_gen = ? WHERE id = ?", (gen_cap, row[0],))
+        conn.commit()
+
+    return redirect(url_for('idb_index'))
 
 @app.route('/idb/export/<loisID>')
 def idb_export_book(loisID):
@@ -491,7 +543,6 @@ def idb_export_book(loisID):
     utils.export_book(loisID, os.path.join(config['UPLOAD_FOLDER'], filename))
 
     return send_from_directory(config['UPLOAD_FOLDER'], filename=filename)
-
 
 @app.route('/idb/remove/<loisID>')
 def idb_remove_book(loisID):

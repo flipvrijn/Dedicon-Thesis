@@ -326,7 +326,7 @@ def resize_image(image_path, resize=256, crop=224):
 
     image_resized.save(image_path)
 
-def query_model(image_path, introspect, text=None):
+def query_model(image_path, introspect, text=''):
     ''' Queries the caption model with an image (and context?) '''
 
     def recvall(sock, n):
