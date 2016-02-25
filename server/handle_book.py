@@ -32,10 +32,13 @@ def extract_images(path):
 
         for group in imggroups:
             img = group.find('.//{%s}img' % namespace).get('src')
-            caption = group.find('.//{%s}caption' % namespace)
-            if caption is not None:
-                caption = ([caption.text] + list(chain(*([c.text, etree.tostring(c), c.tail] for c in caption.getchildren()))) + [caption.tail])
-                caption = ''.join(filter(None, caption)).encode('utf-8')
+            caption = None
+            for elname in ['caption', 'prodnote']:
+                capelem = group.find('.//{%s}%s' % (namespace, elname))
+                if capelem is not None:
+                    caption = ''.join([text for text in capelem.itertext()]).encode('utf-8')
+                #caption = ([caption.text] + list(chain(*([c.text, etree.tostring(c), c.tail] for c in caption.getchildren()))) + [caption.tail])
+                #caption = ''.join(filter(None, caption)).encode('utf-8')
 
             data.append((img, caption))
 
@@ -66,6 +69,7 @@ def init_db(db_file):
         img TEXT NOT NULL,
         img_original TEXT NOT NULL,
         caption TEXT,
+        caption_gen TEXT,
         valid INTEGER DEFAULT 0,
         validated INTEGER DEFAULT 0,
         type INTEGER NULL
@@ -148,7 +152,7 @@ def handle_export(args):
     conn, cur = connect(args['db_file'])
 
     # Check if in database
-    cur.execute("SELECT * FROM images WHERE lois_id = ? AND validated = 1", (args['loisid'],))
+    cur.execute("SELECT img_original, caption, caption_gen FROM images WHERE lois_id = ?", (args['loisid'],))
     rows = cur.fetchall()
     if not rows:
         logger.info('{} not available in the database!'.format(args['loisid']))
@@ -166,17 +170,20 @@ def handle_export(args):
 
     # Insert/modify captions into the XML
     for row in rows:
-        _, _, _, img_name_original, caption, _, _, _ = row
-        imggroup_elem = tree.xpath('.//ns:imggroup[.//ns:img[@src="img/{}"]]'.format(img_name_original), namespaces={'ns': ns})[0]
-        caption_elem = imggroup_elem.xpath('.//ns:caption', namespaces={'ns': ns})
-        if caption_elem:
-            # Caption element already exists; simply change it
-            caption_elem[0].text = caption
+        img_name_original = row[0]
+        caption           = row[1]
+        caption_gen       = row[2] if row[2] else ''
+        imggroup_elem = tree.xpath('.//ns:imggroup[.//ns:img[contains(@src, "{}")]]'.format(img_name_original), namespaces={'ns': ns})[0]
+        prodnote_elem = imggroup_elem.xpath('.//ns:prodnote', namespaces={'ns': ns})
+        prodnote_text = '\n'.join([caption, 'Generated description: ' + caption_gen])
+        if prodnote_elem:
+            # Prodnote element already exists; simply change it
+            prodnote_elem[0].text = prodnote_text
         else:
-            # Construct caption element
-            caption_elem = etree.Element('caption')
-            caption_elem.text = caption
-            imggroup_elem.append(caption_elem)
+            # Construct prodnote element
+            prodnote_elem = etree.Element('prodnote')
+            prodnote_elem.text = prodnote_text
+            imggroup_elem.append(prodnote_elem)
 
     # Zip 'm up
     logger.info('Creating zip...')
@@ -192,10 +199,11 @@ def handle_export(args):
 
         # Move images to output structure
         logger.info('Exporting images...')
-        cur.execute("SELECT * FROM images WHERE lois_id = ?", (args['loisid'],))
+        cur.execute("SELECT img, img_original FROM images WHERE lois_id = ?", (args['loisid'],))
         rows = cur.fetchall()
         for row in rows:
-            _, _, img_name_db, img_name_original, _, _, _, _ = row
+            img_name_db       = row[0]
+            img_name_original = row[1]
             source_path = os.path.join(args['temp_dir'], '..', 'images', img_name_db)
             zf.write(source_path, os.path.join(args['loisid'], 'img', img_name_original))
     finally:
